@@ -21,6 +21,7 @@
 package recipes_service.tsae.data_structures;
 
 import java.io.Serializable;
+import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.Iterator;
 import java.util.List;
@@ -35,71 +36,89 @@ import lsim.worker.LSimWorker;
 import recipes_service.data.Operation;
 
 /**
- * @author Joan-Manuel Marques, Daniel Lázaro Iglesias
- * December 2012
+ * @author Joan-Manuel Marques, Daniel Lázaro Iglesias December 2012
  *
  */
-public class Log implements Serializable{
+public class Log implements Serializable {
 	// Needed for the logging system sgeag@2017
 	private transient LSimWorker lsim = LSimFactory.getWorkerInstance();
 
 	private static final long serialVersionUID = -4864990265268259700L;
 	/**
-	 * This class implements a log, that stores the operations
-	 * received  by a client.
-	 * They are stored in a ConcurrentHashMap (a hash table),
-	 * that stores a list of operations for each member of 
-	 * the group.
+	 * This class implements a log, that stores the operations received by a client. They are stored in a
+	 * ConcurrentHashMap (a hash table), that stores a list of operations for each member of the group.
 	 */
-	private ConcurrentHashMap<String, List<Operation>> log= new ConcurrentHashMap<String, List<Operation>>();  
+	private ConcurrentHashMap<String, List<Operation>> log = new ConcurrentHashMap<String, List<Operation>>();
 
-	public Log(List<String> participants){
+	public Log(List<String> participants) {
 		// create an empty log
-		for (Iterator<String> it = participants.iterator(); it.hasNext(); ){
+		for (Iterator<String> it = participants.iterator(); it.hasNext();) {
 			log.put(it.next(), new Vector<Operation>());
 		}
 	}
 
 	/**
-	 * inserts an operation into the log. Operations are 
-	 * inserted in order. If the last operation for 
-	 * the user is not the previous operation than the one 
-	 * being inserted, the insertion will fail.
+	 * inserts an operation into the log. Operations are inserted in order. If the last operation for the user is not
+	 * the previous operation than the one being inserted, the insertion will fail.
 	 * 
 	 * @param op
 	 * @return true if op is inserted, false otherwise.
 	 */
-	public boolean add(Operation op){
-		lsim.log(Level.TRACE, "Inserting into Log the operation: "+op);
-		
-		// ....
-		
-		// return generated automatically. Remove it when implementing your solution 
+	public boolean add(Operation op) {
+		lsim.log(Level.TRACE, "Inserting into Log the operation: " + op);
+		if (op != null) {
+			//Sync by hostID
+			synchronized (op.getTimestamp().getHostid()) {
+				List<Operation> operations = log.get(op.getTimestamp().getHostid());
+				if (operations == null) {
+					operations = new ArrayList<Operation>();
+					log.put(op.getTimestamp().getHostid(), operations);
+				}
+				Operation lastOperation = null;
+				if (!operations.isEmpty()) {
+					lastOperation = operations.get(operations.size() - 1);
+				}
+				if (lastOperation == null || lastOperation.getTimestamp().compare(op.getTimestamp()) < 0) {
+					operations.add(op);
+					return true;
+				}
+			}
+		}
 		return false;
 	}
-	
+
 	/**
-	 * Checks the received summary (sum) and determines the operations
-	 * contained in the log that have not been seen by
-	 * the proprietary of the summary.
-	 * Returns them in an ordered list.
+	 * Checks the received summary (sum) and determines the operations contained in the log that have not been seen by
+	 * the proprietary of the summary. Returns them in an ordered list.
+	 * 
 	 * @param sum
 	 * @return list of operations
 	 */
-	public List<Operation> listNewer(TimestampVector sum){
-		
-		// return generated automatically. Remove it when implementing your solution 
-		return null;
+	public List<Operation> listNewer(TimestampVector sum) {
+		List<Operation> operations = new ArrayList<Operation>();
+
+		Enumeration<String> keys = log.keys();
+		while (keys.hasMoreElements()) {
+			String key = keys.nextElement();
+			Timestamp lastTimestamp = sum.getLast(key);
+			for (Operation op : log.get(key)) {
+				if (lastTimestamp == null || op.getTimestamp().compare(lastTimestamp) > 0) {
+					operations.add(op);
+				}
+			}
+		}
+
+		return operations;
 	}
-	
+
 	/**
-	 * Removes from the log the operations that have
-	 * been acknowledged by all the members
-	 * of the group, according to the provided
-	 * ackSummary. 
+	 * Removes from the log the operations that have been acknowledged by all the members of the group, according to the
+	 * provided ackSummary.
+	 * 
 	 * @param ack: ackSummary.
 	 */
-	public void purgeLog(TimestampMatrix ack){
+	public void purgeLog(TimestampMatrix ack) {
+
 	}
 
 	/**
@@ -107,9 +126,17 @@ public class Log implements Serializable{
 	 */
 	@Override
 	public boolean equals(Object obj) {
-		
-		// return generated automatically. Remove it when implementing your solution 
-		return false;
+		if (this == obj) {
+			return true;
+		}
+		if (obj == null) {
+			return false;
+		}
+		if (getClass() != obj.getClass()) {
+			return false;
+		}
+		Log other = (Log) obj;
+		return this.log.equals(other.log);
 	}
 
 	/**
@@ -117,15 +144,14 @@ public class Log implements Serializable{
 	 */
 	@Override
 	public synchronized String toString() {
-		String name="";
-		for(Enumeration<List<Operation>> en=log.elements();
-		en.hasMoreElements(); ){
-		List<Operation> sublog=en.nextElement();
-		for(ListIterator<Operation> en2=sublog.listIterator(); en2.hasNext();){
-			name+=en2.next().toString()+"\n";
+		String name = "";
+		for (Enumeration<List<Operation>> en = log.elements(); en.hasMoreElements();) {
+			List<Operation> sublog = en.nextElement();
+			for (ListIterator<Operation> en2 = sublog.listIterator(); en2.hasNext();) {
+				name += en2.next().toString() + "\n";
+			}
 		}
-	}
-		
+
 		return name;
 	}
 }
