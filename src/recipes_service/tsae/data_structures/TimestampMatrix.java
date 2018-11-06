@@ -21,6 +21,8 @@
 package recipes_service.tsae.data_structures;
 
 import java.io.Serializable;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Enumeration;
 import java.util.List;
 import java.util.Iterator;
@@ -32,94 +34,130 @@ import lsim.worker.LSimWorker;
 import edu.uoc.dpcs.lsim.logger.LoggerManager.Level;
 
 /**
- * @author Joan-Manuel Marques, Daniel Lázaro Iglesias
- * December 2012
+ * @author Joan-Manuel Marques, Daniel Lázaro Iglesias December 2012
  *
  */
-public class TimestampMatrix implements Serializable{
+public class TimestampMatrix implements Serializable {
 	// Needed for the logging system sgeag@2017
 	private transient LSimWorker lsim = LSimFactory.getWorkerInstance();
-	
+
 	private static final long serialVersionUID = 3331148113387926667L;
 	ConcurrentHashMap<String, TimestampVector> timestampMatrix = new ConcurrentHashMap<String, TimestampVector>();
-	
-	public TimestampMatrix(List<String> participants){
+
+	public TimestampMatrix(List<String> participants) {
 		// create and empty TimestampMatrix
-		for (Iterator<String> it = participants.iterator(); it.hasNext(); ){
+		for (Iterator<String> it = participants.iterator(); it.hasNext();) {
 			timestampMatrix.put(it.next(), new TimestampVector(participants));
 		}
 	}
-	
+
+	/**
+	 * Construtor to clone
+	 * 
+	 * @param timestampMatrix
+	 */
+	private TimestampMatrix(ConcurrentHashMap<String, TimestampVector> timestampMatrix) {
+		this.timestampMatrix = new ConcurrentHashMap<String, TimestampVector>(timestampMatrix.size());
+		this.timestampMatrix.putAll(timestampMatrix);
+	}
+
 	/**
 	 * Not private for testing purposes.
+	 * 
 	 * @param node
 	 * @return the timestamp vector of node in this timestamp matrix
 	 */
-	TimestampVector getTimestampVector(String node){
-		
-		// return generated automatically. Remove it when implementing your solution 
-		return null;
+	TimestampVector getTimestampVector(String node) {
+		return timestampMatrix.get(node);
 	}
-	
+
 	/**
 	 * Merges two timestamp matrix taking the elementwise maximum
+	 * 
 	 * @param tsMatrix
 	 */
-	public void updateMax(TimestampMatrix tsMatrix){
+	public void updateMax(TimestampMatrix tsMatrix) {
+		Enumeration<String> keys = timestampMatrix.keys();
+		while (keys.hasMoreElements()) {
+			String key = keys.nextElement();
+			TimestampVector currentMine = getTimestampVector(key);
+			TimestampVector currentOther = tsMatrix.getTimestampVector(key);
+
+			if (currentMine != null) {
+				currentMine.updateMax(currentOther);
+			}
+		}
 	}
-	
+
 	/**
 	 * substitutes current timestamp vector of node for tsVector
+	 * 
 	 * @param node
 	 * @param tsVector
 	 */
-	public void update(String node, TimestampVector tsVector){
+	public void update(String node, TimestampVector tsVector) {
+		synchronized (node) {
+			this.timestampMatrix.put(node, tsVector);
+		}
 	}
-	
+
 	/**
 	 * 
-	 * @return a timestamp vector containing, for each node, 
-	 * the timestamp known by all participants
+	 * @return a timestamp vector containing, for each node, the timestamp known by all participants
 	 */
-	public TimestampVector minTimestampVector(){
-		
-		// return generated automatically. Remove it when implementing your solution 
-		return null;
+	public TimestampVector minTimestampVector() {
+		Enumeration<String> keys = timestampMatrix.keys();
+
+		List<String> knownHosts = new ArrayList<String>();
+		while (keys.hasMoreElements()) {
+			knownHosts.add(keys.nextElement());
+		}
+
+		TimestampVector minTimestampVector = new TimestampVector(knownHosts);
+		for (String host : knownHosts) {
+			minTimestampVector.mergeMin(timestampMatrix.get(host));
+		}
+		return minTimestampVector;
 	}
-	
+
 	/**
 	 * clone
 	 */
-	public TimestampMatrix clone(){
-		
-		// return generated automatically. Remove it when implementing your solution 
-		return null;
+	public TimestampMatrix clone() {
+		return new TimestampMatrix(this.timestampMatrix);
 	}
-	
+
 	/**
 	 * equals
 	 */
 	@Override
 	public boolean equals(Object obj) {
-		
-		// return generated automatically. Remove it when implementing your solution 
-		return false;
+		if (this == obj) {
+			return true;
+		}
+		if (obj == null) {
+			return false;
+		}
+		if (getClass() != obj.getClass()) {
+			return false;
+		}
+		TimestampMatrix other = (TimestampMatrix) obj;
+		return this.timestampMatrix.equals(other.timestampMatrix);
 	}
 
-	
 	/**
 	 * toString
 	 */
 	@Override
 	public synchronized String toString() {
-		String all="";
-		if(timestampMatrix==null){
+		String all = "";
+		if (timestampMatrix == null) {
 			return all;
 		}
-		for(Enumeration<String> en=timestampMatrix.keys(); en.hasMoreElements();){
-			String name=en.nextElement();
-			if(timestampMatrix.get(name)!=null)
-				all+=name+":   "+timestampMatrix.get(name)+"\n";
+		for (Enumeration<String> en = timestampMatrix.keys(); en.hasMoreElements();) {
+			String name = en.nextElement();
+			if (timestampMatrix.get(name) != null)
+				all += name + ":   " + timestampMatrix.get(name) + "\n";
 		}
 		return all;
 	}

@@ -67,7 +67,7 @@ public class Log implements Serializable {
 	public boolean add(Operation op) {
 		lsim.log(Level.TRACE, "Inserting into Log the operation: " + op);
 		if (op != null) {
-			//Sync by hostID
+			// Sync by hostID
 			synchronized (op.getTimestamp().getHostid()) {
 				List<Operation> operations = log.get(op.getTimestamp().getHostid());
 				if (operations == null) {
@@ -118,7 +118,25 @@ public class Log implements Serializable {
 	 * @param ack: ackSummary.
 	 */
 	public void purgeLog(TimestampMatrix ack) {
+		TimestampVector ackVector = ack.minTimestampVector();
 
+		Enumeration<String> keys = log.keys();
+		while (keys.hasMoreElements()) {
+			String key = keys.nextElement();
+			// sync block by String host
+			synchronized (key) {
+				Timestamp timestamp = ackVector.getLast(key);
+
+				List<Operation> operationsToremove = new ArrayList<>();
+				List<Operation> logOperations = this.log.get(key);
+				for (Operation op : logOperations) {
+					if (op.getTimestamp().compare(timestamp) < 0) {
+						operationsToremove.add(op);
+					}
+				}
+				logOperations.removeAll(operationsToremove);
+			}
+		}
 	}
 
 	/**

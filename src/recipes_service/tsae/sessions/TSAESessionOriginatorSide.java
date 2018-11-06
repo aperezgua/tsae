@@ -102,7 +102,7 @@ public class TSAESessionOriginatorSide extends TimerTask {
 			// Send to partner: local's summary and ack
 			// ...
 			localSummary = serverData.getSummary();
-			// localAck = serverData.getAck(); // FIXME:aperezgua, without acks
+			localAck = serverData.getAck();
 			// ...
 			Message msg = new MessageAErequest(localSummary, localAck);
 			msg.setSessionNumber(current_session_number);
@@ -130,7 +130,7 @@ public class TSAESessionOriginatorSide extends TimerTask {
 					break;
 				}
 
-				 serverData.getLog().add(operation);
+				serverData.getLog().add(operation);
 				// ...
 				msg = (Message) in.readObject();
 				lsim.log(Level.TRACE, "[TSAESessionOriginatorSide] [session: " + current_session_number
@@ -171,7 +171,7 @@ public class TSAESessionOriginatorSide extends TimerTask {
 					// ...
 					if (partnerSummary != null) {
 						serverData.getSummary().updateMax(partnerSummary);
-						// serverData.getAck().updateMax(partnerAck);
+						serverData.getAck().updateMax(partnerAck);
 						// serverData.getLog().purgeLog(serverData.getAck());
 					}
 					// ...

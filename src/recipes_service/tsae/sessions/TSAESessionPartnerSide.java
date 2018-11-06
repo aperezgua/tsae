@@ -91,7 +91,7 @@ public class TSAESessionPartnerSide extends Thread {
 				// Send to partner: local's summary and ack
 				// ...
 				localSummary = serverData.getSummary(); //
-				// localAck = serverData.getAck(); // FIXME:aperezgua, without acks
+				localAck = serverData.getAck();
 				// ...
 
 				msg = new MessageAErequest(localSummary, localAck);
@@ -137,7 +137,7 @@ public class TSAESessionPartnerSide extends Thread {
 					// ...
 					if (originatorSummary != null) {
 						serverData.getSummary().updateMax(originatorSummary);
-						// serverData.getAck().updateMax(originatorAck);
+						serverData.getAck().updateMax(originatorAck);
 						// serverData.getLog().purgeLog(serverData.getAck());
 
 						// ...

@@ -72,7 +72,7 @@ public class TimestampVector implements Serializable {
 	 * @param timestamp
 	 */
 	public void updateTimestamp(Timestamp timestamp) {
-		//Sync by hostId
+		// Sync by hostId
 		synchronized (timestamp.getHostid()) {
 			lsim.log(Level.TRACE, "Updating the TimestampVectorInserting with the timestamp: " + timestamp);
 			timestampVector.put(timestamp.getHostid(), timestamp);
@@ -85,7 +85,10 @@ public class TimestampVector implements Serializable {
 	 * @param tsVector (a timestamp vector)
 	 */
 	public void updateMax(TimestampVector tsVector) {
-		Enumeration<String> keys = tsVector.timestampVector.keys();
+		if (tsVector == null) {
+			return;
+		}
+		Enumeration<String> keys = timestampVector.keys();
 		while (keys.hasMoreElements()) {
 			String key = keys.nextElement();
 			Timestamp currentMine = timestampVector.get(key);
@@ -115,7 +118,10 @@ public class TimestampVector implements Serializable {
 	 * @param tsVector (timestamp vector)
 	 */
 	public void mergeMin(TimestampVector tsVector) {
-		Enumeration<String> keys = tsVector.timestampVector.keys();
+		if (tsVector == null) {
+			return;
+		}
+		Enumeration<String> keys = timestampVector.keys();
 		while (keys.hasMoreElements()) {
 			String key = keys.nextElement();
 			Timestamp currentMine = timestampVector.get(key);
