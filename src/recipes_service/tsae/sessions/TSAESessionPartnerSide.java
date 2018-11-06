@@ -108,13 +108,17 @@ public class TSAESessionPartnerSide extends Thread {
 
 					Operation operation = ((MessageOperation) msg).getOperation();
 
-					// FIXME:aperezgua: Phase 1: Only add operations (addRecipe method in ServerData class) are issued.
-					/*
-					 * switch(operation.getType()) { case ADD: Recipe recipe = ((AddOperation)operation).getRecipe();
-					 * serverData.getRecipes().add(recipe); break; //case REMOVE: // String recipeTitle =
-					 * ((RemoveOperation)operation).getRecipeTitle(); // serverData.getRecipes().remove(recipeTitle); //
-					 * break; }
-					 */
+					switch (operation.getType()) {
+					case ADD:
+						Recipe recipe = ((AddOperation) operation).getRecipe();
+						serverData.getRecipes().add(recipe);
+						break;
+					case REMOVE:
+						String recipeTitle = ((RemoveOperation) operation).getRecipeTitle();
+						serverData.removeRecipe(recipeTitle);
+						break;
+					}
+
 					serverData.getLog().add(operation);
 					// ...
 					msg = (Message) in.readObject();
