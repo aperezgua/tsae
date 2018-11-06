@@ -93,7 +93,7 @@ public class TimestampVector implements Serializable {
 			if (currentOther == null) {
 				continue;
 			}
-			if (currentMine.compare(currentOther) < 0) {
+			if (currentMine == null || currentMine.compare(currentOther) < 0) {
 				this.updateTimestamp(currentOther);
 			}
 		}

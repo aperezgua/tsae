@@ -96,7 +96,7 @@ public class TSAESessionOriginatorSide extends TimerTask {
 			ObjectInputStream_DS in = new ObjectInputStream_DS(socket.getInputStream());
 			ObjectOutputStream_DS out = new ObjectOutputStream_DS(socket.getOutputStream());
 
-			TimestampVector localSummary = serverData.getSummary().clone();
+			TimestampVector localSummary = null;
 			TimestampMatrix localAck = null;
 
 			// Send to partner: local's summary and ack
