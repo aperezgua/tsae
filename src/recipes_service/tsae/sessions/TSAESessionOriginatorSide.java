@@ -22,23 +22,30 @@ package recipes_service.tsae.sessions;
 
 import java.io.IOException;
 import java.net.Socket;
-import java.util.Iterator;
 import java.util.List;
 import java.util.TimerTask;
-import java.util.Vector;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import recipes_service.ServerData;
-import recipes_service.activity_simulation.SimulationData;
-import recipes_service.communication.*;
-import recipes_service.data.*;
-import recipes_service.tsae.data_structures.*;
-import communication.*;
-
-//LSim logging system imports sgeag@2017
-import lsim.worker.LSimWorker;
+import communication.ObjectInputStream_DS;
+import communication.ObjectOutputStream_DS;
 import edu.uoc.dpcs.lsim.LSimFactory;
 import edu.uoc.dpcs.lsim.logger.LoggerManager.Level;
+//LSim logging system imports sgeag@2017
+import lsim.worker.LSimWorker;
+import recipes_service.ServerData;
+import recipes_service.activity_simulation.SimulationData;
+import recipes_service.communication.Host;
+import recipes_service.communication.Message;
+import recipes_service.communication.MessageAErequest;
+import recipes_service.communication.MessageEndTSAE;
+import recipes_service.communication.MessageOperation;
+import recipes_service.communication.MsgType;
+import recipes_service.data.AddOperation;
+import recipes_service.data.Operation;
+import recipes_service.data.Recipe;
+import recipes_service.data.RemoveOperation;
+import recipes_service.tsae.data_structures.TimestampMatrix;
+import recipes_service.tsae.data_structures.TimestampVector;
 
 /**
  * @author Joan-Manuel Marques December 2012
