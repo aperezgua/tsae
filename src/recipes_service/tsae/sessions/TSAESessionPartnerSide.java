@@ -90,8 +90,15 @@ public class TSAESessionPartnerSide extends Thread {
 
 				// Send to partner: local's summary and ack
 				// ...
-				localSummary = serverData.getSummary(); //
-				localAck = serverData.getAck();
+				localSummary = serverData.getSummary().clone();
+				localAck = serverData.getAck().clone();
+
+				//minElement
+				TimestampVector minElement = localSummary.clone(); 
+				minElement.mergeMin(localSummary);
+				localAck.update(serverData.getId(), minElement);
+				
+
 				// ...
 
 				msg = new MessageAErequest(localSummary, localAck);
@@ -138,7 +145,7 @@ public class TSAESessionPartnerSide extends Thread {
 					if (originatorSummary != null) {
 						serverData.getSummary().updateMax(originatorSummary);
 						serverData.getAck().updateMax(originatorAck);
-						// serverData.getLog().purgeLog(serverData.getAck());
+						serverData.getLog().purgeLog(serverData.getAck());
 
 						// ...
 

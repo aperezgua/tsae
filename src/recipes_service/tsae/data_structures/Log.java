@@ -130,7 +130,7 @@ public class Log implements Serializable {
 				List<Operation> operationsToremove = new ArrayList<>();
 				List<Operation> logOperations = this.log.get(key);
 				for (Operation op : logOperations) {
-					if (op.getTimestamp().compare(timestamp) < 0) {
+					if (op.getTimestamp().compare(timestamp) <= 0) {
 						operationsToremove.add(op);
 					}
 				}

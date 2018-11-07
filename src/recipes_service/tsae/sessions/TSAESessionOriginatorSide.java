@@ -101,8 +101,14 @@ public class TSAESessionOriginatorSide extends TimerTask {
 
 			// Send to partner: local's summary and ack
 			// ...
-			localSummary = serverData.getSummary();
-			localAck = serverData.getAck();
+			localSummary = serverData.getSummary().clone();
+			localAck = serverData.getAck().clone();
+			
+			//minElement
+			TimestampVector minElement = localSummary.clone(); 
+			minElement.mergeMin(localSummary);
+			localAck.update(serverData.getId(), minElement);
+			
 			// ...
 			Message msg = new MessageAErequest(localSummary, localAck);
 			msg.setSessionNumber(current_session_number);
@@ -172,7 +178,7 @@ public class TSAESessionOriginatorSide extends TimerTask {
 					if (partnerSummary != null) {
 						serverData.getSummary().updateMax(partnerSummary);
 						serverData.getAck().updateMax(partnerAck);
-						// serverData.getLog().purgeLog(serverData.getAck());
+						serverData.getLog().purgeLog(serverData.getAck());
 					}
 					// ...
 				}
