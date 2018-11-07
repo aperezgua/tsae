@@ -108,15 +108,16 @@ public class TimestampMatrix implements Serializable {
 	public TimestampVector minTimestampVector() {
 		Enumeration<String> keys = timestampMatrix.keys();
 
-		List<String> knownHosts = new ArrayList<String>();
+		TimestampVector minTimestampVector = null;
 		while (keys.hasMoreElements()) {
-			knownHosts.add(keys.nextElement());
+			TimestampVector currentNodeTimestamp = timestampMatrix.get(keys.nextElement()).clone();
+			if (minTimestampVector == null) {
+				minTimestampVector = currentNodeTimestamp;
+			} else {
+				minTimestampVector.mergeMin(currentNodeTimestamp);
+			}
 		}
 
-		TimestampVector minTimestampVector = new TimestampVector(knownHosts);
-		for (String host : knownHosts) {
-			minTimestampVector.mergeMin(timestampMatrix.get(host));
-		}
 		return minTimestampVector;
 	}
 

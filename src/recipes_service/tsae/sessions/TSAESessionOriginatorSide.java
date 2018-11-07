@@ -101,13 +101,10 @@ public class TSAESessionOriginatorSide extends TimerTask {
 
 			// Send to partner: local's summary and ack
 			// ...
+			// Clone to prevent concurrent modification
 			localSummary = serverData.getSummary().clone();
-			localAck = serverData.getAck().clone();
-			
-			//minElement
-			TimestampVector minElement = localSummary.clone(); 
-			minElement.mergeMin(localSummary);
-			localAck.update(serverData.getId(), minElement);
+			localAck = serverData.getAck().clone();			 			
+			localAck.update(serverData.getId(), localSummary);
 			
 			// ...
 			Message msg = new MessageAErequest(localSummary, localAck);
