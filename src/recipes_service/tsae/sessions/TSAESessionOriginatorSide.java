@@ -136,7 +136,7 @@ public class TSAESessionOriginatorSide extends TimerTask {
 					break;
 				case REMOVE:
 					String recipeTitle = ((RemoveOperation) operation).getRecipeTitle();
-					serverData.removeRecipe(recipeTitle); //
+					serverData.getRecipes().remove(recipeTitle); //
 					break;
 				}
 

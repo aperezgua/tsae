@@ -124,7 +124,7 @@ public class TSAESessionPartnerSide extends Thread {
 						break;
 					case REMOVE:
 						String recipeTitle = ((RemoveOperation) operation).getRecipeTitle();
-						serverData.removeRecipe(recipeTitle);
+						serverData.getRecipes().remove(recipeTitle);
 						break;
 					}
 
