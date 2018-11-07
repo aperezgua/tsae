@@ -127,10 +127,10 @@ public class Log implements Serializable {
 			synchronized (key) {
 				Timestamp timestamp = ackVector.getLast(key);
 
-				List<Operation> operationsToremove = new ArrayList<>();
+				List<Operation> operationsToremove = new ArrayList<Operation>();
 				List<Operation> logOperations = this.log.get(key);
 				for (Operation op : logOperations) {					
-					if (op.getTimestamp().compare(timestamp) < 0) {
+					if (op.getTimestamp().compare(timestamp) <= 0) {
 						operationsToremove.add(op);
 					}
 				}
