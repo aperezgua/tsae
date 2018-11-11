@@ -41,40 +41,40 @@ import recipes_service.tsae.data_structures.TimestampVector;
 import recipes_service.tsae.sessions.TSAESessionOriginatorSide;
 
 /**
- * @author Joan-Manuel Marques
- * December 2012
+ * @author Joan-Manuel Marques December 2012
  *
  */
 public class ServerData {
 	// Needed for the logging system sgeag@2017
 	private transient LSimWorker lsim = LSimFactory.getWorkerInstance();
-	
+
 	// groupId
 	private String groupId;
-	
+
 	// server id
 	private String id;
-	
+
 	// sequence number of the last recipe timestamped by this server
-	private long seqnum=Timestamp.NULL_TIMESTAMP_SEQ_NUMBER; // sequence number (to timestamp)
+	private long seqnum = Timestamp.NULL_TIMESTAMP_SEQ_NUMBER; // sequence number (to timestamp)
 
 	// timestamp lock
 	private Object timestampLock = new Object();
-	
+
 	// TSAE data structures
 	private Log log = null;
 	private TimestampVector summary = null;
 	private TimestampMatrix ack = null;
-	
+
 	// recipes data structure
 	private Recipes recipes = new Recipes();
 
 	// number of TSAE sessions
-	int numSes = 1; // number of different partners that a server will contact for a TSAE session each time that TSAE timer (each sessionPeriod seconds) expires
+	int numSes = 1; // number of different partners that a server will contact for a TSAE session each time that TSAE
+					// timer (each sessionPeriod seconds) expires
 
 	// propDegree: (default value: 0) number of TSAE sessions done each time a new data is created
 	int propDegree = 0;
-	
+
 	// Participating nodes
 	private Hosts participants;
 
@@ -90,50 +90,50 @@ public class ServerData {
 	// TODO: esborrar aquesta estructura de dades
 	// tombstones: timestamp of removed operations
 	List<Timestamp> tombstones = new Vector<Timestamp>();
-	
+
 	// end: true when program should end; false otherwise
 	private boolean end;
 
-	public ServerData(String groupId){
+	public ServerData(String groupId) {
 		this.groupId = groupId;
 	}
-	
+
 	/**
 	 * Starts the execution
+	 * 
 	 * @param participantss
 	 */
-	public void startTSAE(Hosts participants){
+	public void startTSAE(Hosts participants) {
 		this.participants = participants;
 		this.log = new Log(participants.getIds());
 		this.summary = new TimestampVector(participants.getIds());
 		this.ack = new TimestampMatrix(participants.getIds());
-		
 
-		//  Sets the Timer for TSAE sessions
-	    tsae = new TSAESessionOriginatorSide(this);
+		// Sets the Timer for TSAE sessions
+		tsae = new TSAESessionOriginatorSide(this);
 		tsaeSessionTimer = new Timer();
 		tsaeSessionTimer.scheduleAtFixedRate(tsae, sessionDelay, sessionPeriod);
 	}
 
-	public void stopTSAEsessions(){
+	public void stopTSAEsessions() {
 		this.tsaeSessionTimer.cancel();
 	}
-	
-	public boolean end(){
+
+	public boolean end() {
 		return this.end;
 	}
-	
-	public void setEnd(){
+
+	public void setEnd() {
 		this.end = true;
 	}
 
 	// ******************************
 	// *** timestamps
 	// ******************************
-	private Timestamp nextTimestamp(){
+	private Timestamp nextTimestamp() {
 		Timestamp nextTimestamp = null;
-		synchronized (timestampLock){
-			if (seqnum == Timestamp.NULL_TIMESTAMP_SEQ_NUMBER){
+		synchronized (timestampLock) {
+			if (seqnum == Timestamp.NULL_TIMESTAMP_SEQ_NUMBER) {
 				seqnum = -1;
 			}
 			nextTimestamp = new Timestamp(id, ++seqnum);
@@ -146,27 +146,27 @@ public class ServerData {
 	// ******************************
 	public synchronized void addRecipe(String recipeTitle, String recipe) {
 
-		Timestamp timestamp= nextTimestamp();
+		Timestamp timestamp = nextTimestamp();
 		Recipe rcpe = new Recipe(recipeTitle, recipe, groupId, timestamp);
-		Operation op=new AddOperation(rcpe, timestamp);
+		Operation op = new AddOperation(rcpe, timestamp);
 
 		this.log.add(op);
 		this.summary.updateTimestamp(timestamp);
 		this.recipes.add(rcpe);
 	}
-	
-	public synchronized void removeRecipe(String recipeTitle){
 
-		Timestamp timestamp= nextTimestamp();
-		Recipe recipe = recipes.get(recipeTitle);
-		Operation removeOperation = new RemoveOperation(recipeTitle, recipe.getTimestamp(), timestamp);
-		
-		this.log.add(removeOperation);
-		this.summary.updateTimestamp(timestamp);
-		this.recipes.remove(recipeTitle);
+	public synchronized void removeRecipe(String recipeTitle) {
+		Recipe recipeToRemove = this.recipes.get(recipeTitle);
+		if (recipeToRemove != null) {
+			Timestamp timestamp = nextTimestamp();
+
+			Operation op = new RemoveOperation(recipeTitle, recipeToRemove.getTimestamp(), timestamp);
+			this.log.add(op);
+			this.summary.updateTimestamp(timestamp);
+			this.recipes.remove(recipeTitle);
+		}
 		
 	}
-	
 
 	// ****************************************************************************
 	// *** operations to get the TSAE data structures. Used to send to evaluation
@@ -174,82 +174,89 @@ public class ServerData {
 	public Log getLog() {
 		return log;
 	}
+
 	public TimestampVector getSummary() {
 		return summary;
 	}
+
 	public TimestampMatrix getAck() {
 		return ack;
 	}
-	public Recipes getRecipes(){
+
+	public Recipes getRecipes() {
 		return recipes;
 	}
 
 	// ******************************
 	// *** getters and setters
 	// ******************************
-	public String getGroupId(){
+	public String getGroupId() {
 		return this.groupId;
 	}
-	public void setId(String id){
-		this.id = id;		
+
+	public void setId(String id) {
+		this.id = id;
 	}
-	public String getId(){
+
+	public String getId() {
 		return this.id;
 	}
 
-	public int getNumberSessions(){
+	public int getNumberSessions() {
 		return numSes;
 	}
 
-	public void setNumberSessions(int numSes){
+	public void setNumberSessions(int numSes) {
 		this.numSes = numSes;
 	}
 
-	public int getPropagationDegree(){
+	public int getPropagationDegree() {
 		return this.propDegree;
 	}
 
-	public void setPropagationDegree(int propDegree){
+	public void setPropagationDegree(int propDegree) {
 		this.propDegree = propDegree;
 	}
 
 	public void setSessionDelay(long sessionDelay) {
 		this.sessionDelay = sessionDelay;
 	}
+
 	public void setSessionPeriod(long sessionPeriod) {
 		this.sessionPeriod = sessionPeriod;
 	}
-	public TSAESessionOriginatorSide getTSAESessionOriginatorSide(){
+
+	public TSAESessionOriginatorSide getTSAESessionOriginatorSide() {
 		return this.tsae;
 	}
-	
+
 	// ******************************
 	// *** other
 	// ******************************
-	
-	public List<Host> getRandomPartners(int num){
+
+	public List<Host> getRandomPartners(int num) {
 		return participants.getRandomPartners(num);
 	}
-	
+
 	/**
-	 * waits until the Server is ready to receive TSAE sessions from partner servers   
+	 * waits until the Server is ready to receive TSAE sessions from partner servers
 	 */
-	public synchronized void waitServerConnected(){
-		while (!SimulationData.getInstance().isConnected()){
+	public synchronized void waitServerConnected() {
+		while (!SimulationData.getInstance().isConnected()) {
 			try {
 				wait();
 			} catch (InterruptedException e) {
 				// TODO Auto-generated catch block
-				//			e.printStackTrace();
+				// e.printStackTrace();
 			}
 		}
 	}
-	
+
 	/**
-	 * 	Once the server is connected notifies to ServerPartnerSide that it is ready
-	 *  to receive TSAE sessions from partner servers  
-	 */ 
-	public synchronized void notifyServerConnected(){
+	 * Once the server is connected notifies to ServerPartnerSide that it is ready to receive TSAE sessions from partner
+	 * servers
+	 */
+	public synchronized void notifyServerConnected() {
 		notifyAll();
 	}
 }

@@ -110,9 +110,9 @@ public class TSAESessionOriginatorSide extends TimerTask {
 			// ...
 			// Clone to prevent concurrent modification
 			localSummary = serverData.getSummary().clone();
-			localAck = serverData.getAck().clone();			 			
+			localAck = serverData.getAck().clone();
 			localAck.update(serverData.getId(), localSummary);
-			
+
 			// ...
 			Message msg = new MessageAErequest(localSummary, localAck);
 			msg.setSessionNumber(current_session_number);
@@ -129,20 +129,24 @@ public class TSAESessionOriginatorSide extends TimerTask {
 				// Figure 5.7
 				Operation operation = ((MessageOperation) msg).getOperation();
 
-				if(serverData.getLog().add(operation)) {
+				if (serverData.getLog().add(operation)) {
 					switch (operation.getType()) {
 					case ADD:
 						Recipe recipe = ((AddOperation) operation).getRecipe();
 						serverData.getRecipes().add(recipe);
 						break;
 					case REMOVE:
-						String recipeTitle = ((RemoveOperation) operation).getRecipeTitle();
-						serverData.getRecipes().remove(recipeTitle); //
+						RemoveOperation removeOperation = ((RemoveOperation) operation);
+
+						String recipeTitle = removeOperation.getRecipeTitle();
+						Recipe recipeToRemove = serverData.getRecipes().get(recipeTitle);
+						if (recipeToRemove != null) {
+							serverData.getRecipes().remove(recipeTitle); //
+						}
 						break;
 					}
 				}
 
-				//serverData.getLog().add(operation);
 				// ...
 				msg = (Message) in.readObject();
 				lsim.log(Level.TRACE, "[TSAESessionOriginatorSide] [session: " + current_session_number
