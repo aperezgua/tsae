@@ -22,6 +22,8 @@ package recipes_service.tsae.data_structures;
 
 import java.io.Serializable;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.Enumeration;
 import java.util.Iterator;
 import java.util.List;
@@ -44,6 +46,21 @@ public class Log implements Serializable {
 	private transient LSimWorker lsim = LSimFactory.getWorkerInstance();
 
 	private static final long serialVersionUID = -4864990265268259700L;
+
+	private static final Comparator<Operation> ORDERBY_TIMESTAMP = new Comparator<Operation>() {
+
+		@Override
+		public int compare(final Operation op1, final Operation op2) {
+			if (op1.getTimestamp().compare(op2.getTimestamp()) > 0) {
+				return 1;
+			} else if (op1.getTimestamp().compare(op2.getTimestamp()) < 0) {
+				return -1;
+			}
+			return 0;
+		}
+
+	};
+
 	/**
 	 * This class implements a log, that stores the operations received by a client. They are stored in a
 	 * ConcurrentHashMap (a hash table), that stores a list of operations for each member of the group.
@@ -100,13 +117,16 @@ public class Log implements Serializable {
 		Enumeration<String> keys = log.keys();
 		while (keys.hasMoreElements()) {
 			String key = keys.nextElement();
-			Timestamp lastTimestamp = sum.getLast(key);
-			for (Operation op : log.get(key)) {
-				if (lastTimestamp == null || op.getTimestamp().compare(lastTimestamp) > 0) {
-					operations.add(op);
+			synchronized (key) {
+				Timestamp lastTimestamp = sum.getLast(key);
+				for (Operation op : log.get(key)) {
+					if (lastTimestamp == null || op.getTimestamp().compare(lastTimestamp) > 0) {
+						operations.add(op);
+					}
 				}
 			}
 		}
+		Collections.sort(operations, ORDERBY_TIMESTAMP);
 
 		return operations;
 	}
@@ -119,7 +139,7 @@ public class Log implements Serializable {
 	 */
 	public void purgeLog(TimestampMatrix ack) {
 		TimestampVector ackVector = ack.minTimestampVector();
-			
+
 		Enumeration<String> keys = log.keys();
 		while (keys.hasMoreElements()) {
 			String key = keys.nextElement();
@@ -129,7 +149,7 @@ public class Log implements Serializable {
 
 				List<Operation> operationsToremove = new ArrayList<Operation>();
 				List<Operation> logOperations = this.log.get(key);
-				for (Operation op : logOperations) {					
+				for (Operation op : logOperations) {
 					if (op.getTimestamp().compare(timestamp) <= 0) {
 						operationsToremove.add(op);
 					}
