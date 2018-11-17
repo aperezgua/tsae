@@ -54,8 +54,7 @@ import recipes_service.tsae.data_structures.TimestampVector;
 public class TSAESessionOriginatorSide extends TimerTask {
 	// Needed for the logging system sgeag@2017
 	private LSimWorker lsim = LSimFactory.getWorkerInstance();
-	private static AtomicInteger session_number = new AtomicInteger(0);
-	private static final Object LOCK = new Object();
+	private static AtomicInteger session_number = new AtomicInteger(0);	
 
 	private ServerData serverData;
 
@@ -98,8 +97,7 @@ public class TSAESessionOriginatorSide extends TimerTask {
 			return;
 
 		lsim.log(Level.TRACE, "[TSAESessionOriginatorSide] [session: " + current_session_number + "] TSAE session");
-
-		synchronized (LOCK) {
+		
 			try {
 				Socket socket = new Socket(n.getAddress(), n.getPort());
 				ObjectInputStream_DS in = new ObjectInputStream_DS(socket.getInputStream());
@@ -131,26 +129,7 @@ public class TSAESessionOriginatorSide extends TimerTask {
 					// Figure 5.7
 					Operation operation = ((MessageOperation) msg).getOperation();
 
-					if (serverData.getLog().add(operation)) {
-						switch (operation.getType()) {
-						case ADD:
-							Recipe recipe = ((AddOperation) operation).getRecipe();
-							serverData.getRecipes().add(recipe);
-							break;
-						case REMOVE:
-							RemoveOperation removeOperation = ((RemoveOperation) operation);
-
-							String recipeTitle = removeOperation.getRecipeTitle();
-							Recipe recipeToRemove = serverData.getRecipes().get(recipeTitle);
-							if (recipeToRemove != null
-									&& recipeToRemove.getTimestamp().equals(removeOperation.getRecipeTimestamp())) {
-								serverData.getRecipes().remove(recipeTitle); //
-							} else if (recipeToRemove != null) {
-								serverData.removeRecipe(recipeTitle);
-							}
-							break;
-						}
-					}
+					serverData.addOrRemoveOperation(operation);
 
 					// ...
 					msg = (Message) in.readObject();
@@ -160,8 +139,8 @@ public class TSAESessionOriginatorSide extends TimerTask {
 
 				// receive partner's summary and ack
 				if (msg.type() == MsgType.AE_REQUEST) {
-					TimestampVector partnerSummary = ((MessageAErequest) msg).getSummary();
-					TimestampMatrix partnerAck = ((MessageAErequest) msg).getAck();
+					TimestampVector partnerSummary = ((MessageAErequest) msg).getSummary().clone();
+					TimestampMatrix partnerAck = ((MessageAErequest) msg).getAck().clone();
 
 					List<Operation> operationsToSend = serverData.getLog().listNewer(partnerSummary);
 
@@ -191,9 +170,9 @@ public class TSAESessionOriginatorSide extends TimerTask {
 					if (msg.type() == MsgType.END_TSAE) {
 						// ...
 						if (partnerSummary != null) {
-							serverData.getSummary().updateMax(partnerSummary);
-							serverData.getAck().updateMax(partnerAck);
-							serverData.getLog().purgeLog(serverData.getAck());
+							serverData.updateMaxSummary(partnerSummary);
+							serverData.updateMaxAck(partnerAck);							
+							serverData.purgeLog();
 						}
 						// ...
 					}
@@ -209,8 +188,7 @@ public class TSAESessionOriginatorSide extends TimerTask {
 				e.printStackTrace();
 				System.exit(1);
 			} catch (IOException e) {
-			}
-		}
+			}		
 
 		lsim.log(Level.TRACE, "[TSAESessionOriginatorSide] [session: " + current_session_number + "] End TSAE session");
 	}

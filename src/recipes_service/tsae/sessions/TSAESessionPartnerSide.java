@@ -49,9 +49,7 @@ import recipes_service.tsae.data_structures.TimestampVector;
  */
 public class TSAESessionPartnerSide extends Thread {
 	// Needed for the logging system sgeag@2017
-	private LSimWorker lsim = LSimFactory.getWorkerInstance();
-
-	private static final Object LOCK = new Object();
+	private LSimWorker lsim = LSimFactory.getWorkerInstance();	
 
 	private Socket socket = null;
 	private ServerData serverData = null;
@@ -82,7 +80,6 @@ public class TSAESessionPartnerSide extends Thread {
 				TimestampVector originatorSummary = ((MessageAErequest) msg).getSummary();
 				TimestampMatrix originatorAck = ((MessageAErequest) msg).getAck();
 
-				synchronized (LOCK) {
 					List<Operation> operationsToSend = serverData.getLog().listNewer(originatorSummary);
 
 					for (Operation operation : operationsToSend) {
@@ -120,26 +117,7 @@ public class TSAESessionPartnerSide extends Thread {
 
 						Operation operation = ((MessageOperation) msg).getOperation();
 
-						if (serverData.getLog().add(operation)) {
-							switch (operation.getType()) {
-							case ADD:
-								Recipe recipe = ((AddOperation) operation).getRecipe();
-								serverData.getRecipes().add(recipe);
-								break;
-							case REMOVE:
-								RemoveOperation removeOperation = ((RemoveOperation) operation);
-
-								String recipeTitle = removeOperation.getRecipeTitle();
-								Recipe recipeToRemove = serverData.getRecipes().get(recipeTitle);
-								if (recipeToRemove != null
-										&& recipeToRemove.getTimestamp().equals(removeOperation.getRecipeTimestamp())) {
-									serverData.getRecipes().remove(recipeTitle); //
-								} else if (recipeToRemove != null) {
-									serverData.removeRecipe(recipeTitle);
-								}
-								break;
-							}
-						}
+						serverData.addOrRemoveOperation(operation);
 
 						// ...
 						msg = (Message) in.readObject();
@@ -157,15 +135,13 @@ public class TSAESessionPartnerSide extends Thread {
 								+ "] sent message: " + msg);
 						// ...
 						if (originatorSummary != null) {
-							serverData.getSummary().updateMax(originatorSummary);
-							serverData.getAck().updateMax(originatorAck);
-							serverData.getLog().purgeLog(serverData.getAck());
-
+							serverData.updateMaxSummary(originatorSummary);
+							serverData.updateMaxAck(originatorAck);							
+							serverData.purgeLog();
 							// ...
 
 						}
 					}
-				}
 			}
 			socket.close();
 		} catch (ClassNotFoundException e) {
