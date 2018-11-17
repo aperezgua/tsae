@@ -28,6 +28,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 //LSim logging system imports sgeag@2017
 import lsim.worker.LSimWorker;
+import recipes_service.tsae.LSimLogAbel;
 import edu.uoc.dpcs.lsim.LSimFactory;
 import edu.uoc.dpcs.lsim.logger.LoggerManager.Level;
 
@@ -37,7 +38,9 @@ import edu.uoc.dpcs.lsim.logger.LoggerManager.Level;
  */
 public class TimestampVector implements Serializable {
 	// Needed for the logging system sgeag@2017
-	private transient LSimWorker lsim = LSimFactory.getWorkerInstance();
+	// private transient LSimWorker lsim = LSimFactory.getWorkerInstance();
+	//
+	private transient LSimLogAbel lsim = new LSimLogAbel();
 
 	private static final long serialVersionUID = -765026247959198886L;
 	/**
@@ -88,6 +91,7 @@ public class TimestampVector implements Serializable {
 		if (tsVector == null) {
 			return;
 		}
+		lsim.log(Level.TRACE, "TimestampVector.updateMax");
 		Enumeration<String> keys = timestampVector.keys();
 		while (keys.hasMoreElements()) {
 			String key = keys.nextElement();

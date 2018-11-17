@@ -36,6 +36,8 @@ import edu.uoc.dpcs.lsim.LSimFactory;
 import edu.uoc.dpcs.lsim.logger.LoggerManager.Level;
 import lsim.worker.LSimWorker;
 import recipes_service.data.Operation;
+import recipes_service.data.RemoveOperation;
+import recipes_service.tsae.LSimLogAbel;
 
 /**
  * @author Joan-Manuel Marques, Daniel Lázaro Iglesias December 2012
@@ -43,7 +45,8 @@ import recipes_service.data.Operation;
  */
 public class Log implements Serializable {
 	// Needed for the logging system sgeag@2017
-	private transient LSimWorker lsim = LSimFactory.getWorkerInstance();
+	// private transient LSimWorker lsim = LSimFactory.getWorkerInstance();
+	private transient LSimLogAbel lsim = new LSimLogAbel();
 
 	private static final long serialVersionUID = -4864990265268259700L;
 
@@ -51,9 +54,15 @@ public class Log implements Serializable {
 
 		@Override
 		public int compare(final Operation op1, final Operation op2) {
-			if (op1.getTimestamp().compare(op2.getTimestamp()) > 0) {
+
+			Timestamp t1 = (op1 instanceof RemoveOperation ? ((RemoveOperation) op1).getRecipeTimestamp()
+					: op1.getTimestamp());
+			Timestamp t2 = (op2 instanceof RemoveOperation ? ((RemoveOperation) op2).getRecipeTimestamp()
+					: op2.getTimestamp());
+
+			if (t1.compare(t2) > 0) {
 				return 1;
-			} else if (op1.getTimestamp().compare(op2.getTimestamp()) < 0) {
+			} else if (t1.compare(t2) < 0) {
 				return -1;
 			}
 			return 0;
@@ -127,7 +136,7 @@ public class Log implements Serializable {
 			}
 		}
 		Collections.sort(operations, ORDERBY_TIMESTAMP);
-
+		lsim.log(Level.TRACE, "Log.listNewer: " + operations);
 		return operations;
 	}
 

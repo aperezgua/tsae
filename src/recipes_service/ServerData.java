@@ -45,9 +45,6 @@ import recipes_service.tsae.sessions.TSAESessionOriginatorSide;
  *
  */
 public class ServerData {
-	
-	private final Object LOCK = new Object();	
-	
 	// Needed for the logging system sgeag@2017
 	private transient LSimWorker lsim = LSimFactory.getWorkerInstance();
 
@@ -151,13 +148,11 @@ public class ServerData {
 
 		Timestamp timestamp = nextTimestamp();
 		Recipe rcpe = new Recipe(recipeTitle, recipe, groupId, timestamp);
-		Operation op = new AddOperation(rcpe, timestamp);		
-		
-		synchronized(LOCK) {
-			if(log.add(op))
-				this.recipes.add(rcpe);
-			this.summary.updateTimestamp(timestamp);
-		}
+		Operation op = new AddOperation(rcpe, timestamp);
+
+		this.log.add(op);
+		this.summary.updateTimestamp(timestamp);
+		this.recipes.add(rcpe);
 	}
 
 	public synchronized void removeRecipe(String recipeTitle) {
@@ -166,55 +161,13 @@ public class ServerData {
 			Timestamp timestamp = nextTimestamp();
 
 			Operation op = new RemoveOperation(recipeTitle, recipeToRemove.getTimestamp(), timestamp);
-			
-			synchronized(LOCK) {
-				if(log.add(op))
-					this.recipes.remove(recipeTitle);
-				this.summary.updateTimestamp(timestamp);
-			}			
+			this.log.add(op);
+			this.summary.updateTimestamp(timestamp);
+			this.recipes.remove(recipeTitle);
 		}
 		
 	}
 
-	public synchronized void updateMaxSummary(TimestampVector summary) {
-		synchronized(LOCK) {
-			this.summary.updateMax(summary);
-		}
-		
-	}
-	
-	public synchronized void updateMaxAck(TimestampMatrix ack) {
-		synchronized(LOCK) {
-			this.ack.updateMax(ack);
-		}
-	}
-	
-	public synchronized void purgeLog() {
-		synchronized(LOCK){
-			this.log.purgeLog(this.ack.clone());
-		}
-		
-	}
-	
-	public synchronized void addOrRemoveOperation(Operation operation) {
-	
-		synchronized(LOCK){
-			if (this.log.add(operation)) {
-				switch (operation.getType()) {
-				case ADD:
-					Recipe recipe = ((AddOperation) operation).getRecipe();
-					this.recipes.add(recipe);
-					break;
-				case REMOVE:
-					RemoveOperation removeOperation = ((RemoveOperation) operation);	
-					String recipeTitle = removeOperation.getRecipeTitle();
-					this.recipes.remove(recipeTitle); 
-					break;
-				}
-			}
-		}
-	}
-	
 	// ****************************************************************************
 	// *** operations to get the TSAE data structures. Used to send to evaluation
 	// ****************************************************************************

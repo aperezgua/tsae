@@ -21,8 +21,6 @@
 package recipes_service.tsae.data_structures;
 
 import java.io.Serializable;
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Enumeration;
 import java.util.List;
 import java.util.Iterator;
@@ -31,6 +29,7 @@ import java.util.concurrent.ConcurrentHashMap;
 //LSim logging system imports sgeag@2017
 import edu.uoc.dpcs.lsim.LSimFactory;
 import lsim.worker.LSimWorker;
+import recipes_service.tsae.LSimLogAbel;
 import edu.uoc.dpcs.lsim.logger.LoggerManager.Level;
 
 /**
@@ -39,7 +38,8 @@ import edu.uoc.dpcs.lsim.logger.LoggerManager.Level;
  */
 public class TimestampMatrix implements Serializable {
 	// Needed for the logging system sgeag@2017
-	private transient LSimWorker lsim = LSimFactory.getWorkerInstance();
+	// private transient LSimWorker lsim = LSimFactory.getWorkerInstance(); //
+	private transient LSimLogAbel lsim = new LSimLogAbel();
 
 	private static final long serialVersionUID = 3331148113387926667L;
 	ConcurrentHashMap<String, TimestampVector> timestampMatrix = new ConcurrentHashMap<String, TimestampVector>();
@@ -77,14 +77,17 @@ public class TimestampMatrix implements Serializable {
 	 * @param tsMatrix
 	 */
 	public void updateMax(TimestampMatrix tsMatrix) {
+		lsim.log(Level.TRACE, "TimestampMatrix.updateMax: ");
 		Enumeration<String> keys = timestampMatrix.keys();
 		while (keys.hasMoreElements()) {
 			String key = keys.nextElement();
-			TimestampVector currentMine = getTimestampVector(key);
-			TimestampVector currentOther = tsMatrix.getTimestampVector(key);
+			synchronized (key) {
+				TimestampVector currentMine = getTimestampVector(key);
+				TimestampVector currentOther = tsMatrix.getTimestampVector(key);
 
-			if (currentMine != null) {
-				currentMine.updateMax(currentOther);
+				if (currentMine != null) {
+					currentMine.updateMax(currentOther);
+				}
 			}
 		}
 	}
@@ -97,6 +100,7 @@ public class TimestampMatrix implements Serializable {
 	 */
 	public void update(String node, TimestampVector tsVector) {
 		synchronized (node) {
+			lsim.log(Level.TRACE, "TimestampMatix.update: " + node + " with " + tsVector);
 			this.timestampMatrix.put(node, tsVector);
 		}
 	}
@@ -117,6 +121,8 @@ public class TimestampMatrix implements Serializable {
 				minTimestampVector.mergeMin(currentNodeTimestamp);
 			}
 		}
+
+		lsim.log(Level.TRACE, "TimestampMatix.minTimestampVector: " + minTimestampVector);
 
 		return minTimestampVector;
 	}
