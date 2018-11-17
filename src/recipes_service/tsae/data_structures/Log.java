@@ -130,7 +130,7 @@ public class Log implements Serializable {
 				}
 			}
 		}
-		Collections.sort(operations, ORDERBY_TIMESTAMP);
+		//Collections.sort(operations, ORDERBY_TIMESTAMP);
 		lsim.log(Level.TRACE, "Log.listNewer: " + operations);
 		return operations;
 	}
@@ -197,6 +197,10 @@ public class Log implements Serializable {
 		return name;
 	}
 
+	/**
+	 * Method to return log keys sorted by name
+	 * @return
+	 */
 	private List<String> getSortedKeys() {
 		List<String> sortedKeys = new ArrayList<String>();
 		for (Enumeration<String> en = log.keys(); en.hasMoreElements();) {

@@ -21,6 +21,8 @@
 package recipes_service.tsae.data_structures;
 
 import java.io.Serializable;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Enumeration;
 import java.util.List;
 import java.util.Iterator;
@@ -160,11 +162,24 @@ public class TimestampMatrix implements Serializable {
 		if (timestampMatrix == null) {
 			return all;
 		}
-		for (Enumeration<String> en = timestampMatrix.keys(); en.hasMoreElements();) {
-			String name = en.nextElement();
+		for (String name : getSortedKeys()) {
 			if (timestampMatrix.get(name) != null)
 				all += name + ":   " + timestampMatrix.get(name) + "\n";
 		}
 		return all;
+	}
+
+	/**
+	 * Method to return log keys sorted by name
+	 * 
+	 * @return
+	 */
+	private List<String> getSortedKeys() {
+		List<String> sortedKeys = new ArrayList<String>();
+		for (Enumeration<String> en = timestampMatrix.keys(); en.hasMoreElements();) {
+			sortedKeys.add(en.nextElement());
+		}
+		Collections.sort(sortedKeys);
+		return sortedKeys;
 	}
 }

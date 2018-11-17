@@ -21,6 +21,8 @@
 package recipes_service.tsae.data_structures;
 
 import java.io.Serializable;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Enumeration;
 import java.util.Iterator;
 import java.util.List;
@@ -170,11 +172,24 @@ public class TimestampVector implements Serializable {
 		if (timestampVector == null) {
 			return all;
 		}
-		for (Enumeration<String> en = timestampVector.keys(); en.hasMoreElements();) {
-			String name = en.nextElement();
+		for (String name : getSortedKeys()) {
 			if (timestampVector.get(name) != null)
 				all += timestampVector.get(name) + "\n";
 		}
 		return all;
+	}
+
+	/**
+	 * Method to return log keys sorted by name
+	 * 
+	 * @return
+	 */
+	private List<String> getSortedKeys() {
+		List<String> sortedKeys = new ArrayList<String>();
+		for (Enumeration<String> en = timestampVector.keys(); en.hasMoreElements();) {
+			sortedKeys.add(en.nextElement());
+		}
+		Collections.sort(sortedKeys);
+		return sortedKeys;
 	}
 }

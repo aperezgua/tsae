@@ -131,10 +131,9 @@ public class TSAESessionPartnerSide extends Thread {
 					out.writeObject(msg);
 					lsim.log(Level.TRACE,
 							"[TSAESessionPartnerSide] [session: " + current_session_number + "] sent message: " + msg);
+					
 					// ...
-
 					serverData.processOperationQueue(originatorSummary, originatorAck, operationsReceived);
-
 					// ...
 
 				}
