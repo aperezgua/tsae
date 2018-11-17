@@ -21,6 +21,8 @@
 package recipes_service.tsae.data_structures;
 
 import java.io.Serializable;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Enumeration;
 import java.util.Iterator;
 import java.util.List;
@@ -173,10 +175,16 @@ public class TimestampVector implements Serializable {
 		if (timestampVector == null) {
 			return all;
 		}
+		List<String> sortedKeys = new ArrayList<String>();
 		for (Enumeration<String> en = timestampVector.keys(); en.hasMoreElements();) {
-			String name = en.nextElement();
-			if (timestampVector.get(name) != null)
-				all += timestampVector.get(name) + "\n";
+			sortedKeys.add(en.nextElement());
+		}
+		Collections.sort(sortedKeys);
+
+		for (String key : sortedKeys) {
+			if (timestampVector.get(key) != null) {
+				all += timestampVector.get(key) + "\n";
+			}
 		}
 		return all;
 	}
