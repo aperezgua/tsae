@@ -36,8 +36,6 @@ import edu.uoc.dpcs.lsim.LSimFactory;
 import edu.uoc.dpcs.lsim.logger.LoggerManager.Level;
 import lsim.worker.LSimWorker;
 import recipes_service.data.Operation;
-import recipes_service.data.RemoveOperation;
-import recipes_service.tsae.LSimLogAbel;
 
 /**
  * @author Joan-Manuel Marques, Daniel Lázaro Iglesias December 2012
@@ -45,20 +43,19 @@ import recipes_service.tsae.LSimLogAbel;
  */
 public class Log implements Serializable {
 	// Needed for the logging system sgeag@2017
-	// private transient LSimWorker lsim = LSimFactory.getWorkerInstance();
-	private transient LSimLogAbel lsim = new LSimLogAbel();
+	private transient LSimWorker lsim = LSimFactory.getWorkerInstance();
 
 	private static final long serialVersionUID = -4864990265268259700L;
 
+	/**
+	 * Comparator to sort our Operation List with Timestamp
+	 */
 	private static final Comparator<Operation> ORDERBY_TIMESTAMP = new Comparator<Operation>() {
 
 		@Override
 		public int compare(final Operation op1, final Operation op2) {
-
-			Timestamp t1 = (op1 instanceof RemoveOperation ? ((RemoveOperation) op1).getRecipeTimestamp()
-					: op1.getTimestamp());
-			Timestamp t2 = (op2 instanceof RemoveOperation ? ((RemoveOperation) op2).getRecipeTimestamp()
-					: op2.getTimestamp());
+			Timestamp t1 = op1.getTimestamp();
+			Timestamp t2 = op2.getTimestamp();
 
 			if (t1.compare(t2) > 0) {
 				return 1;
@@ -123,9 +120,7 @@ public class Log implements Serializable {
 	public List<Operation> listNewer(TimestampVector sum) {
 		List<Operation> operations = new ArrayList<Operation>();
 
-		Enumeration<String> keys = log.keys();
-		while (keys.hasMoreElements()) {
-			String key = keys.nextElement();
+		for (String key : getSortedKeys()) {
 			synchronized (key) {
 				Timestamp lastTimestamp = sum.getLast(key);
 				for (Operation op : log.get(key)) {
@@ -192,13 +187,22 @@ public class Log implements Serializable {
 	@Override
 	public synchronized String toString() {
 		String name = "";
-		for (Enumeration<List<Operation>> en = log.elements(); en.hasMoreElements();) {
-			List<Operation> sublog = en.nextElement();
+		for (String key : getSortedKeys()) {
+			List<Operation> sublog = log.get(key);
 			for (ListIterator<Operation> en2 = sublog.listIterator(); en2.hasNext();) {
 				name += en2.next().toString() + "\n";
 			}
 		}
 
 		return name;
+	}
+
+	private List<String> getSortedKeys() {
+		List<String> sortedKeys = new ArrayList<String>();
+		for (Enumeration<String> en = log.keys(); en.hasMoreElements();) {
+			sortedKeys.add(en.nextElement());
+		}
+		Collections.sort(sortedKeys);
+		return sortedKeys;
 	}
 }

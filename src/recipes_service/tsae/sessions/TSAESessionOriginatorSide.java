@@ -41,11 +41,7 @@ import recipes_service.communication.MessageAErequest;
 import recipes_service.communication.MessageEndTSAE;
 import recipes_service.communication.MessageOperation;
 import recipes_service.communication.MsgType;
-import recipes_service.data.AddOperation;
 import recipes_service.data.Operation;
-import recipes_service.data.Recipe;
-import recipes_service.data.RemoveOperation;
-import recipes_service.tsae.LSimLogAbel;
 import recipes_service.tsae.data_structures.TimestampMatrix;
 import recipes_service.tsae.data_structures.TimestampVector;
 
@@ -55,13 +51,9 @@ import recipes_service.tsae.data_structures.TimestampVector;
  */
 public class TSAESessionOriginatorSide extends TimerTask {
 	// Needed for the logging system sgeag@2017
-	// private LSimWorker lsim = LSimFactory.getWorkerInstance();
-	
-	private transient LSimLogAbel lsim = new LSimLogAbel();
+	private LSimWorker lsim = LSimFactory.getWorkerInstance();
 
 	private static AtomicInteger session_number = new AtomicInteger(0);
-
-	private static final Object LOCK = new Object();
 
 	private ServerData serverData;
 
@@ -176,35 +168,7 @@ public class TSAESessionOriginatorSide extends TimerTask {
 
 				if (msg.type() == MsgType.END_TSAE) {
 					// ...
-
-					synchronized (LOCK) {
-						for (Operation operation : operationsReceived) {
-							if (serverData.getLog().add(operation)) {
-								switch (operation.getType()) {
-								case ADD:
-									Recipe recipe = ((AddOperation) operation).getRecipe();
-									serverData.getRecipes().add(recipe);
-									break;
-								case REMOVE:
-									RemoveOperation removeOperation = ((RemoveOperation) operation);
-
-									String recipeTitle = removeOperation.getRecipeTitle();
-									Recipe recipeToRemove = serverData.getRecipes().get(recipeTitle);
-									if (recipeToRemove != null && recipeToRemove.getTimestamp()
-											.equals(removeOperation.getRecipeTimestamp())) {
-										serverData.getRecipes().remove(recipeTitle); //
-									} else if (recipeToRemove != null) {
-										serverData.removeRecipe(recipeTitle);
-									}
-									break;
-								}
-							}
-						}
-
-						serverData.getSummary().updateMax(partnerSummary);
-						serverData.getAck().updateMax(partnerAck);
-						serverData.getLog().purgeLog(serverData.getAck());
-					}
+					serverData.processOperationQueue(partnerSummary, partnerAck, operationsReceived);
 					// ...
 				}
 			}

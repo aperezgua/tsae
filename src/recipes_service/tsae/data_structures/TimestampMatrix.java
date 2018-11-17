@@ -29,7 +29,6 @@ import java.util.concurrent.ConcurrentHashMap;
 //LSim logging system imports sgeag@2017
 import edu.uoc.dpcs.lsim.LSimFactory;
 import lsim.worker.LSimWorker;
-import recipes_service.tsae.LSimLogAbel;
 import edu.uoc.dpcs.lsim.logger.LoggerManager.Level;
 
 /**
@@ -38,8 +37,7 @@ import edu.uoc.dpcs.lsim.logger.LoggerManager.Level;
  */
 public class TimestampMatrix implements Serializable {
 	// Needed for the logging system sgeag@2017
-	// private transient LSimWorker lsim = LSimFactory.getWorkerInstance(); //
-	private transient LSimLogAbel lsim = new LSimLogAbel();
+	private transient LSimWorker lsim = LSimFactory.getWorkerInstance();
 
 	private static final long serialVersionUID = 3331148113387926667L;
 	ConcurrentHashMap<String, TimestampVector> timestampMatrix = new ConcurrentHashMap<String, TimestampVector>();
@@ -101,7 +99,8 @@ public class TimestampMatrix implements Serializable {
 	public void update(String node, TimestampVector tsVector) {
 		synchronized (node) {
 			lsim.log(Level.TRACE, "TimestampMatix.update: " + node + " with " + tsVector);
-			this.timestampMatrix.put(node, tsVector);
+			// TimestampVector currentTimestampVector = timestampMatrix.get(node)
+			timestampMatrix.put(node, tsVector);
 		}
 	}
 

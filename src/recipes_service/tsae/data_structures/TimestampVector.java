@@ -21,8 +21,6 @@
 package recipes_service.tsae.data_structures;
 
 import java.io.Serializable;
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Enumeration;
 import java.util.Iterator;
 import java.util.List;
@@ -30,7 +28,6 @@ import java.util.concurrent.ConcurrentHashMap;
 
 //LSim logging system imports sgeag@2017
 import lsim.worker.LSimWorker;
-import recipes_service.tsae.LSimLogAbel;
 import edu.uoc.dpcs.lsim.LSimFactory;
 import edu.uoc.dpcs.lsim.logger.LoggerManager.Level;
 
@@ -40,9 +37,7 @@ import edu.uoc.dpcs.lsim.logger.LoggerManager.Level;
  */
 public class TimestampVector implements Serializable {
 	// Needed for the logging system sgeag@2017
-	// private transient LSimWorker lsim = LSimFactory.getWorkerInstance();
-	//
-	private transient LSimLogAbel lsim = new LSimLogAbel();
+	private transient LSimWorker lsim = LSimFactory.getWorkerInstance();
 
 	private static final long serialVersionUID = -765026247959198886L;
 	/**
@@ -175,16 +170,10 @@ public class TimestampVector implements Serializable {
 		if (timestampVector == null) {
 			return all;
 		}
-		List<String> sortedKeys = new ArrayList<String>();
 		for (Enumeration<String> en = timestampVector.keys(); en.hasMoreElements();) {
-			sortedKeys.add(en.nextElement());
-		}
-		Collections.sort(sortedKeys);
-
-		for (String key : sortedKeys) {
-			if (timestampVector.get(key) != null) {
-				all += timestampVector.get(key) + "\n";
-			}
+			String name = en.nextElement();
+			if (timestampVector.get(name) != null)
+				all += timestampVector.get(name) + "\n";
 		}
 		return all;
 	}
