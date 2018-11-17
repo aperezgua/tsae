@@ -88,6 +88,7 @@ public class TimestampVector implements Serializable {
 		if (tsVector == null) {
 			return;
 		}
+		lsim.log(Level.TRACE, "TimestampVector.updateMax");
 		Enumeration<String> keys = timestampVector.keys();
 		while (keys.hasMoreElements()) {
 			String key = keys.nextElement();

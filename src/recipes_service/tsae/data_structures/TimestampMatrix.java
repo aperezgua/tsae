@@ -21,8 +21,6 @@
 package recipes_service.tsae.data_structures;
 
 import java.io.Serializable;
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Enumeration;
 import java.util.List;
 import java.util.Iterator;
@@ -77,14 +75,17 @@ public class TimestampMatrix implements Serializable {
 	 * @param tsMatrix
 	 */
 	public void updateMax(TimestampMatrix tsMatrix) {
+		lsim.log(Level.TRACE, "TimestampMatrix.updateMax: ");
 		Enumeration<String> keys = timestampMatrix.keys();
 		while (keys.hasMoreElements()) {
 			String key = keys.nextElement();
-			TimestampVector currentMine = getTimestampVector(key);
-			TimestampVector currentOther = tsMatrix.getTimestampVector(key);
+			synchronized (key) {
+				TimestampVector currentMine = getTimestampVector(key);
+				TimestampVector currentOther = tsMatrix.getTimestampVector(key);
 
-			if (currentMine != null) {
-				currentMine.updateMax(currentOther);
+				if (currentMine != null) {
+					currentMine.updateMax(currentOther);
+				}
 			}
 		}
 	}
@@ -97,7 +98,9 @@ public class TimestampMatrix implements Serializable {
 	 */
 	public void update(String node, TimestampVector tsVector) {
 		synchronized (node) {
-			this.timestampMatrix.put(node, tsVector);
+			lsim.log(Level.TRACE, "TimestampMatix.update: " + node + " with " + tsVector);
+			// TimestampVector currentTimestampVector = timestampMatrix.get(node)
+			timestampMatrix.put(node, tsVector);
 		}
 	}
 
@@ -117,6 +120,8 @@ public class TimestampMatrix implements Serializable {
 				minTimestampVector.mergeMin(currentNodeTimestamp);
 			}
 		}
+
+		lsim.log(Level.TRACE, "TimestampMatix.minTimestampVector: " + minTimestampVector);
 
 		return minTimestampVector;
 	}

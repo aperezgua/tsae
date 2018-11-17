@@ -47,13 +47,19 @@ public class Log implements Serializable {
 
 	private static final long serialVersionUID = -4864990265268259700L;
 
+	/**
+	 * Comparator to sort our Operation List with Timestamp
+	 */
 	private static final Comparator<Operation> ORDERBY_TIMESTAMP = new Comparator<Operation>() {
 
 		@Override
 		public int compare(final Operation op1, final Operation op2) {
-			if (op1.getTimestamp().compare(op2.getTimestamp()) > 0) {
+			Timestamp t1 = op1.getTimestamp();
+			Timestamp t2 = op2.getTimestamp();
+
+			if (t1.compare(t2) > 0) {
 				return 1;
-			} else if (op1.getTimestamp().compare(op2.getTimestamp()) < 0) {
+			} else if (t1.compare(t2) < 0) {
 				return -1;
 			}
 			return 0;
@@ -114,9 +120,7 @@ public class Log implements Serializable {
 	public List<Operation> listNewer(TimestampVector sum) {
 		List<Operation> operations = new ArrayList<Operation>();
 
-		Enumeration<String> keys = log.keys();
-		while (keys.hasMoreElements()) {
-			String key = keys.nextElement();
+		for (String key : getSortedKeys()) {
 			synchronized (key) {
 				Timestamp lastTimestamp = sum.getLast(key);
 				for (Operation op : log.get(key)) {
@@ -127,7 +131,7 @@ public class Log implements Serializable {
 			}
 		}
 		Collections.sort(operations, ORDERBY_TIMESTAMP);
-
+		lsim.log(Level.TRACE, "Log.listNewer: " + operations);
 		return operations;
 	}
 
@@ -183,13 +187,22 @@ public class Log implements Serializable {
 	@Override
 	public synchronized String toString() {
 		String name = "";
-		for (Enumeration<List<Operation>> en = log.elements(); en.hasMoreElements();) {
-			List<Operation> sublog = en.nextElement();
+		for (String key : getSortedKeys()) {
+			List<Operation> sublog = log.get(key);
 			for (ListIterator<Operation> en2 = sublog.listIterator(); en2.hasNext();) {
 				name += en2.next().toString() + "\n";
 			}
 		}
 
 		return name;
+	}
+
+	private List<String> getSortedKeys() {
+		List<String> sortedKeys = new ArrayList<String>();
+		for (Enumeration<String> en = log.keys(); en.hasMoreElements();) {
+			sortedKeys.add(en.nextElement());
+		}
+		Collections.sort(sortedKeys);
+		return sortedKeys;
 	}
 }

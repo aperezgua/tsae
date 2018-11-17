@@ -20,11 +20,13 @@
 
 package recipes_service;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Timer;
 import java.util.Vector;
 
 import edu.uoc.dpcs.lsim.LSimFactory;
+import edu.uoc.dpcs.lsim.logger.LoggerManager.Level;
 import lsim.worker.LSimWorker;
 import recipes_service.activity_simulation.SimulationData;
 import recipes_service.communication.Host;
@@ -45,9 +47,6 @@ import recipes_service.tsae.sessions.TSAESessionOriginatorSide;
  *
  */
 public class ServerData {
-	
-	private final Object LOCK = new Object();	
-	
 	// Needed for the logging system sgeag@2017
 	private transient LSimWorker lsim = LSimFactory.getWorkerInstance();
 
@@ -151,13 +150,11 @@ public class ServerData {
 
 		Timestamp timestamp = nextTimestamp();
 		Recipe rcpe = new Recipe(recipeTitle, recipe, groupId, timestamp);
-		Operation op = new AddOperation(rcpe, timestamp);		
-		
-		synchronized(LOCK) {
-			if(log.add(op))
-				this.recipes.add(rcpe);
-			this.summary.updateTimestamp(timestamp);
-		}
+		Operation op = new AddOperation(rcpe, timestamp);
+
+		this.log.add(op);
+		this.summary.updateTimestamp(timestamp);
+		this.recipes.add(rcpe);
 	}
 
 	public synchronized void removeRecipe(String recipeTitle) {
@@ -166,55 +163,72 @@ public class ServerData {
 			Timestamp timestamp = nextTimestamp();
 
 			Operation op = new RemoveOperation(recipeTitle, recipeToRemove.getTimestamp(), timestamp);
-			
-			synchronized(LOCK) {
-				if(log.add(op))
-					this.recipes.remove(recipeTitle);
-				this.summary.updateTimestamp(timestamp);
-			}			
+			this.log.add(op);
+			this.summary.updateTimestamp(timestamp);
+			this.recipes.remove(recipeTitle);
 		}
-		
 	}
 
-	public synchronized void updateMaxSummary(TimestampVector summary) {
-		synchronized(LOCK) {
-			this.summary.updateMax(summary);
-		}
-		
-	}
-	
-	public synchronized void updateMaxAck(TimestampMatrix ack) {
-		synchronized(LOCK) {
-			this.ack.updateMax(ack);
-		}
-	}
-	
-	public synchronized void purgeLog() {
-		synchronized(LOCK){
-			this.log.purgeLog(this.ack.clone());
-		}
-		
-	}
-	
-	public synchronized void addOrRemoveOperation(Operation operation) {
-	
-		synchronized(LOCK){
-			if (this.log.add(operation)) {
+	/**
+	 * Method to process operation queue in END TSae protocol. Method is synchronized to avoid concurrency among
+	 * multiple threads (Partner or Originator)
+	 * 
+	 * There is a issue with RemoveOperations: we have 3 hosts, one is disconnected. Host B add a recipe, sync with host
+	 * A. Host A remove recipe from host B. Now, Host C connects to group, TSAE Protocol can send first the remove
+	 * operation from A than Add operation from host B. To avoid this problem, verify if we can remove recipe, if we
+	 * cannot remove recipe, we add Timestamp to a list. In add operations we always verify if this List cannot contain
+	 * our Timestamp
+	 * 
+	 * @param summary TimestampVector from Partner or Originator in Tsae protocol to update our summary after add opertaions
+	 * @param ack TimestampMatrix from Partner or Originator  in Tsae protocol to purge our log
+	 * @param operations Operations to add/remove
+	 */
+	public synchronized void processOperationQueue(TimestampVector summary, TimestampMatrix ack,
+			List<Operation> operations) {
+
+		List<Timestamp> recipesToRemove = new ArrayList<Timestamp>();
+
+		for (Operation operation : operations) {
+			if (getLog().add(operation)) {
 				switch (operation.getType()) {
 				case ADD:
 					Recipe recipe = ((AddOperation) operation).getRecipe();
-					this.recipes.add(recipe);
+					if (!recipesToRemove.contains(recipe.getTimestamp())) {
+						getRecipes().add(recipe);
+					} else {
+						lsim.log(Level.TRACE,
+								"ServerData.processOperationQueue Cannot add Recipe because it has been removed "
+										+ recipe);
+					}
 					break;
 				case REMOVE:
-					RemoveOperation removeOperation = ((RemoveOperation) operation);	
+					RemoveOperation removeOperation = ((RemoveOperation) operation);
+
 					String recipeTitle = removeOperation.getRecipeTitle();
-					this.recipes.remove(recipeTitle); 
+					Recipe recipeToRemove = getRecipes().get(recipeTitle);
+					if (recipeToRemove != null
+							&& recipeToRemove.getTimestamp().equals(removeOperation.getRecipeTimestamp())) {
+						getRecipes().remove(recipeTitle); //
+
+					} else {
+						lsim.log(Level.TRACE,
+								"ServerData.processOperationQueue Cannot find recipe to remove, sync error? "
+										+ removeOperation);
+						recipesToRemove.add(removeOperation.getRecipeTimestamp());
+					}
+					// else if (recipeToRemove != null) {
+					// serverData.removeRecipe(recipeTitle);
+					// }
 					break;
 				}
 			}
 		}
+
+		getSummary().updateMax(summary);
+		getAck().updateMax(ack);
+		getLog().purgeLog(getAck());
 	}
-	
+
 	// ****************************************************************************
 	// *** operations to get the TSAE data structures. Used to send to evaluation
 	// ****************************************************************************
