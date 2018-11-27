@@ -58,9 +58,9 @@ public class Log implements Serializable {
 			Timestamp t2 = op2.getTimestamp();
 
 			if (t1.compare(t2) > 0) {
-				return 1;
-			} else if (t1.compare(t2) < 0) {
 				return -1;
+			} else if (t1.compare(t2) < 0) {
+				return 1;
 			}
 			return 0;
 		}
@@ -117,20 +117,19 @@ public class Log implements Serializable {
 	 * @param sum
 	 * @return list of operations
 	 */
-	public synchronized List<Operation> listNewer(TimestampVector sum) {
+	public List<Operation> listNewer(TimestampVector sum) {
 		List<Operation> operations = new ArrayList<Operation>();
 
 		for (String key : getSortedKeys()) {
 			synchronized (key) {
-				List<Operation> operationsByHost = new ArrayList<Operation>();
+
 				Timestamp lastTimestamp = sum.getLast(key);
 				for (Operation op : log.get(key)) {
 					if (lastTimestamp == null || op.getTimestamp().compare(lastTimestamp) > 0) {
-						operationsByHost.add(op);
+						operations.add(op);
 					}
 				}
-				Collections.sort(operationsByHost, ORDERBY_TIMESTAMP);
-				operations.addAll(operationsByHost);
+
 			}
 		}
 		//
@@ -144,7 +143,7 @@ public class Log implements Serializable {
 	 * 
 	 * @param ack: ackSummary.
 	 */
-	public synchronized void purgeLog(TimestampMatrix ack) {
+	public void purgeLog(TimestampMatrix ack) {
 		TimestampVector ackVector = ack.minTimestampVector();
 
 		Enumeration<String> keys = log.keys();
