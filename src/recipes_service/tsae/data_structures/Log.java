@@ -117,21 +117,24 @@ public class Log implements Serializable {
 	 * @param sum
 	 * @return list of operations
 	 */
-	public List<Operation> listNewer(TimestampVector sum) {
+	public synchronized List<Operation> listNewer(TimestampVector sum) {
 		List<Operation> operations = new ArrayList<Operation>();
 
 		for (String key : getSortedKeys()) {
 			synchronized (key) {
+				List<Operation> operationsByHost = new ArrayList<Operation>();
 				Timestamp lastTimestamp = sum.getLast(key);
 				for (Operation op : log.get(key)) {
 					if (lastTimestamp == null || op.getTimestamp().compare(lastTimestamp) > 0) {
-						operations.add(op);
+						operationsByHost.add(op);
 					}
 				}
+				Collections.sort(operationsByHost, ORDERBY_TIMESTAMP);
+				operations.addAll(operationsByHost);
 			}
 		}
-		//Collections.sort(operations, ORDERBY_TIMESTAMP);
-		lsim.log(Level.TRACE, "Log.listNewer: " + operations);
+		//
+		lsim.log(Level.TRACE, "[Log.listNewer] [" + Thread.currentThread().getName() + "]: " + operations);
 		return operations;
 	}
 
@@ -141,7 +144,7 @@ public class Log implements Serializable {
 	 * 
 	 * @param ack: ackSummary.
 	 */
-	public void purgeLog(TimestampMatrix ack) {
+	public synchronized void purgeLog(TimestampMatrix ack) {
 		TimestampVector ackVector = ack.minTimestampVector();
 
 		Enumeration<String> keys = log.keys();
@@ -199,6 +202,7 @@ public class Log implements Serializable {
 
 	/**
 	 * Method to return log keys sorted by name
+	 * 
 	 * @return
 	 */
 	private List<String> getSortedKeys() {

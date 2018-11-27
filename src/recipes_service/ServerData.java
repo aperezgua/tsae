@@ -86,6 +86,8 @@ public class ServerData {
 
 	private Timer tsaeSessionTimer;
 
+	private Object communicationLock = new Object();
+
 	//
 	TSAESessionOriginatorSide tsae = null;
 
@@ -154,6 +156,7 @@ public class ServerData {
 
 		this.log.add(op);
 		this.summary.updateTimestamp(timestamp);
+		this.ack.update(this.id, this.summary);
 		this.recipes.add(rcpe);
 	}
 
@@ -165,6 +168,7 @@ public class ServerData {
 			Operation op = new RemoveOperation(recipeTitle, recipeToRemove.getTimestamp(), timestamp);
 			this.log.add(op);
 			this.summary.updateTimestamp(timestamp);
+			this.ack.update(this.id, this.summary);
 			this.recipes.remove(recipeTitle);
 		}
 	}
@@ -179,13 +183,15 @@ public class ServerData {
 	 * cannot remove recipe, we add Timestamp to a list. In add operations we always verify if this List cannot contain
 	 * our Timestamp
 	 * 
-	 * @param summary TimestampVector from Partner or Originator in Tsae protocol to update our summary after add opertaions
-	 * @param ack TimestampMatrix from Partner or Originator  in Tsae protocol to purge our log
+	 * @param summary TimestampVector from Partner or Originator in Tsae protocol to update our summary after add
+	 *            opertaions
+	 * @param ack TimestampMatrix from Partner or Originator in Tsae protocol to purge our log
 	 * @param operations Operations to add/remove
 	 */
-	public synchronized void processOperationQueue(TimestampVector summary, TimestampMatrix ack,
+	public synchronized void processOperationQueue(int nSession, TimestampVector summary, TimestampMatrix ack,
 			List<Operation> operations) {
 
+		String currentThread = Thread.currentThread().toString();
 		List<Timestamp> recipesToRemove = new ArrayList<Timestamp>();
 
 		for (Operation operation : operations) {
@@ -196,9 +202,9 @@ public class ServerData {
 					if (!recipesToRemove.contains(recipe.getTimestamp())) {
 						getRecipes().add(recipe);
 					} else {
-						lsim.log(Level.TRACE,
-								"ServerData.processOperationQueue Cannot add Recipe because it has been removed "
-										+ recipe);
+						recipesToRemove.remove(recipe.getTimestamp());
+						lsim.log(Level.TRACE, "[ServerData.processOperationQueue] [" + currentThread + "] [session: "
+								+ nSession + "] Cannot add Recipe because it has been removed " + recipe);
 					}
 					break;
 				case REMOVE:
@@ -211,9 +217,8 @@ public class ServerData {
 						getRecipes().remove(recipeTitle); //
 
 					} else {
-						lsim.log(Level.TRACE,
-								"ServerData.processOperationQueue Cannot find recipe to remove, sync error? "
-										+ removeOperation);
+						lsim.log(Level.TRACE, "[ServerData.processOperationQueue] [" + currentThread + "] [session: "
+								+ nSession + "] Cannot find recipe to remove, sync error? " + removeOperation);
 						recipesToRemove.add(removeOperation.getRecipeTimestamp());
 					}
 					// else if (recipeToRemove != null) {
@@ -221,7 +226,15 @@ public class ServerData {
 					// }
 					break;
 				}
+			} else {
+				lsim.log(Level.TRACE, "[ServerData.processOperationQueue] [" + currentThread + "] [session: " + nSession
+						+ "]  cannot add: " + operation);
 			}
+		}
+
+		if (!recipesToRemove.isEmpty()) {
+			lsim.log(Level.TRACE, "[ServerData.processOperationQueue] [" + currentThread + "] [session: " + nSession
+					+ "] We have not received all operations " + recipesToRemove);
 		}
 
 		getSummary().updateMax(summary);
@@ -319,5 +332,9 @@ public class ServerData {
 	 */
 	public synchronized void notifyServerConnected() {
 		notifyAll();
+	}
+
+	public synchronized Object getCommunicationLock() {
+		return communicationLock;
 	}
 }

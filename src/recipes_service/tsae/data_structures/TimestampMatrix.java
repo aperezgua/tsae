@@ -58,7 +58,9 @@ public class TimestampMatrix implements Serializable {
 	 */
 	private TimestampMatrix(ConcurrentHashMap<String, TimestampVector> timestampMatrix) {
 		this.timestampMatrix = new ConcurrentHashMap<String, TimestampVector>(timestampMatrix.size());
-		this.timestampMatrix.putAll(timestampMatrix);
+		for (String key : timestampMatrix.keySet()) {
+			this.timestampMatrix.put(key, timestampMatrix.get(key).clone());
+		}
 	}
 
 	/**
@@ -77,7 +79,7 @@ public class TimestampMatrix implements Serializable {
 	 * @param tsMatrix
 	 */
 	public void updateMax(TimestampMatrix tsMatrix) {
-		lsim.log(Level.TRACE, "TimestampMatrix.updateMax: ");
+		lsim.log(Level.TRACE, "[TimestampMatrix.updateMax] [" + Thread.currentThread().getName() +"]");
 		Enumeration<String> keys = timestampMatrix.keys();
 		while (keys.hasMoreElements()) {
 			String key = keys.nextElement();
@@ -100,7 +102,7 @@ public class TimestampMatrix implements Serializable {
 	 */
 	public void update(String node, TimestampVector tsVector) {
 		synchronized (node) {
-			lsim.log(Level.TRACE, "TimestampMatix.update: " + node + " with " + tsVector);
+			lsim.log(Level.TRACE, "[TimestampMatix.update] [" +  Thread.currentThread().getName() +"]: " + node + " with " + tsVector);
 			// TimestampVector currentTimestampVector = timestampMatrix.get(node)
 			timestampMatrix.put(node, tsVector);
 		}
@@ -123,7 +125,7 @@ public class TimestampMatrix implements Serializable {
 			}
 		}
 
-		lsim.log(Level.TRACE, "TimestampMatix.minTimestampVector: " + minTimestampVector);
+		lsim.log(Level.TRACE, "[TimestampMatix.minTimestampVector [" +  Thread.currentThread().getName() +"]: " + minTimestampVector);
 
 		return minTimestampVector;
 	}
