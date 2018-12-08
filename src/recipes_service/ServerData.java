@@ -221,9 +221,7 @@ public class ServerData {
 								+ nSession + "] Cannot find recipe to remove, sync error? " + removeOperation);
 						recipesToRemove.add(removeOperation.getRecipeTimestamp());
 					}
-					// else if (recipeToRemove != null) {
-					// serverData.removeRecipe(recipeTitle);
-					// }
+					
 					break;
 				}
 				// Only update timestamp if needed

@@ -23,7 +23,6 @@ package recipes_service.tsae.data_structures;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.Enumeration;
 import java.util.Iterator;
 import java.util.List;
@@ -46,6 +45,14 @@ public class Log implements Serializable {
 	private transient LSimWorker lsim = LSimFactory.getWorkerInstance();
 
 	private static final long serialVersionUID = -4864990265268259700L;
+
+	/**
+	 * Object to synchronized updates and reads
+	 */
+	private Object lock = new Serializable() {
+		private static final long serialVersionUID = 6453722610536757895L;
+
+	};
 
 	/**
 	 * This class implements a log, that stores the operations received by a client. They are stored in a
@@ -80,10 +87,11 @@ public class Log implements Serializable {
 	 * @return true if op is inserted, false otherwise.
 	 */
 	public boolean add(Operation op) {
-		lsim.log(Level.TRACE, "Inserting into Log the operation: " + op);
-		if (op != null) {
-			// Sync by hostID
-			synchronized (op.getTimestamp().getHostid()) {
+		synchronized (lock) {
+			lsim.log(Level.TRACE, "Inserting into Log the operation: " + op);
+			if (op != null) {
+				// Sync by hostID
+
 				List<Operation> operations = log.get(op.getTimestamp().getHostid());
 				if (operations == null) {
 					operations = new ArrayList<Operation>();
@@ -97,6 +105,7 @@ public class Log implements Serializable {
 					operations.add(op);
 					return true;
 				}
+
 			}
 		}
 		return false;
@@ -110,10 +119,10 @@ public class Log implements Serializable {
 	 * @return list of operations
 	 */
 	public List<Operation> listNewer(TimestampVector sum) {
-		List<Operation> operations = new ArrayList<Operation>();
 
-		for (String key : getSortedKeys()) {
-			synchronized (key) {
+		List<Operation> operations = new ArrayList<Operation>();
+		synchronized (lock) {
+			for (String key : getSortedKeys()) {
 
 				Timestamp lastTimestamp = sum.getLast(key);
 				for (Operation op : log.get(key)) {
@@ -136,13 +145,14 @@ public class Log implements Serializable {
 	 * @param ack: ackSummary.
 	 */
 	public void purgeLog(TimestampMatrix ack) {
-		TimestampVector ackVector = ack.minTimestampVector();
+		synchronized (lock) {
+			TimestampVector ackVector = ack.minTimestampVector();
 
-		Enumeration<String> keys = log.keys();
-		while (keys.hasMoreElements()) {
-			String key = keys.nextElement();
-			// sync block by String host
-			synchronized (key) {
+			Enumeration<String> keys = log.keys();
+			while (keys.hasMoreElements()) {
+				String key = keys.nextElement();
+				// sync block by String host
+
 				Timestamp timestamp = ackVector.getLast(key);
 
 				List<Operation> operationsToremove = new ArrayList<Operation>();
@@ -176,7 +186,9 @@ public class Log implements Serializable {
 	}
 
 	public Log clone() {
-		return new Log(log);
+		synchronized (lock) {
+			return new Log(log);
+		}
 	}
 
 	/**

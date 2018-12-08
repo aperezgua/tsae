@@ -32,6 +32,7 @@ public class Timestamp implements Serializable{
 	 * 
 	 */
 	private static final long serialVersionUID = 4178027349883987517L;
+	
 	/**
 	 * This class represents the timestamp of an operation.
 	 * Contains the node that issued the operation, and

@@ -42,6 +42,14 @@ public class TimestampMatrix implements Serializable {
 	private transient LSimWorker lsim = LSimFactory.getWorkerInstance();
 
 	private static final long serialVersionUID = 3331148113387926667L;
+
+	/**
+	 * Object to synchronized updates and reads
+	 */
+	private Object lock = new Serializable() {
+		private static final long serialVersionUID = -7957383889803192348L;		
+	};
+
 	ConcurrentHashMap<String, TimestampVector> timestampMatrix = new ConcurrentHashMap<String, TimestampVector>();
 
 	public TimestampMatrix(List<String> participants) {
@@ -70,7 +78,9 @@ public class TimestampMatrix implements Serializable {
 	 * @return the timestamp vector of node in this timestamp matrix
 	 */
 	TimestampVector getTimestampVector(String node) {
-		return timestampMatrix.get(node);
+		synchronized (lock) {
+			return timestampMatrix.get(node);
+		}
 	}
 
 	/**
@@ -79,11 +89,11 @@ public class TimestampMatrix implements Serializable {
 	 * @param tsMatrix
 	 */
 	public void updateMax(TimestampMatrix tsMatrix) {
-		lsim.log(Level.TRACE, "[TimestampMatrix.updateMax] [" + Thread.currentThread().getName() + "]");
-		Enumeration<String> keys = timestampMatrix.keys();
-		while (keys.hasMoreElements()) {
-			String key = keys.nextElement();
-			synchronized (key) {
+		synchronized (lock) {
+			lsim.log(Level.TRACE, "[TimestampMatrix.updateMax] [" + Thread.currentThread().getName() + "]");
+			Enumeration<String> keys = timestampMatrix.keys();
+			while (keys.hasMoreElements()) {
+				String key = keys.nextElement();
 				TimestampVector currentMine = getTimestampVector(key);
 				TimestampVector currentOther = tsMatrix.getTimestampVector(key);
 
@@ -101,7 +111,7 @@ public class TimestampMatrix implements Serializable {
 	 * @param tsVector
 	 */
 	public void update(String node, TimestampVector tsVector) {
-		synchronized (node) {
+		synchronized (lock) {
 			lsim.log(Level.TRACE, "[TimestampMatix.update] [" + Thread.currentThread().getName() + "]: " + node
 					+ " with " + tsVector);
 			// TimestampVector currentTimestampVector = timestampMatrix.get(node)
@@ -114,29 +124,33 @@ public class TimestampMatrix implements Serializable {
 	 * @return a timestamp vector containing, for each node, the timestamp known by all participants
 	 */
 	public TimestampVector minTimestampVector() {
-		Enumeration<String> keys = timestampMatrix.keys();
+		synchronized (lock) {
+			Enumeration<String> keys = timestampMatrix.keys();
 
-		TimestampVector minTimestampVector = null;
-		while (keys.hasMoreElements()) {
-			TimestampVector currentNodeTimestamp = timestampMatrix.get(keys.nextElement()).clone();
-			if (minTimestampVector == null) {
-				minTimestampVector = currentNodeTimestamp;
-			} else {
-				minTimestampVector.mergeMin(currentNodeTimestamp);
+			TimestampVector minTimestampVector = null;
+			while (keys.hasMoreElements()) {
+				TimestampVector currentNodeTimestamp = timestampMatrix.get(keys.nextElement()).clone();
+				if (minTimestampVector == null) {
+					minTimestampVector = currentNodeTimestamp;
+				} else {
+					minTimestampVector.mergeMin(currentNodeTimestamp);
+				}
 			}
+
+			lsim.log(Level.TRACE, "[TimestampMatix.minTimestampVector [" + Thread.currentThread().getName() + "]: "
+					+ minTimestampVector);
+
+			return minTimestampVector;
 		}
-
-		lsim.log(Level.TRACE,
-				"[TimestampMatix.minTimestampVector [" + Thread.currentThread().getName() + "]: " + minTimestampVector);
-
-		return minTimestampVector;
 	}
 
 	/**
 	 * clone
 	 */
 	public TimestampMatrix clone() {
-		return new TimestampMatrix(this.timestampMatrix);
+		synchronized (lock) {
+			return new TimestampMatrix(this.timestampMatrix);
+		}
 	}
 
 	/**

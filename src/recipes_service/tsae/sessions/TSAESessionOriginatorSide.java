@@ -177,12 +177,7 @@ public class TSAESessionOriginatorSide extends TimerTask {
 
 				if (msg.type() == MsgType.END_TSAE) {
 					// ...
-					/*
-					 * Para evitar que hagamos update de algo que no emos recibido por errores en la sincronización y la
-					 * concurrencia. Esto ocurre si en una sesión TSAE el Originator / Parner, el parner nos envía un
-					 * summary de algo que no hemos recibido
-					 * 
-					 */
+					
 					serverData.processOperationQueue(current_session_number, partnerSummary, partnerAck,
 							operationsReceived);
 					// ...

@@ -42,6 +42,14 @@ public class TimestampVector implements Serializable {
 	private transient LSimWorker lsim = LSimFactory.getWorkerInstance();
 
 	private static final long serialVersionUID = -765026247959198886L;
+
+	/**
+	 * Object to synchronized updates and reads
+	 */
+	private Object lock = new Serializable() {
+		private static final long serialVersionUID = -7304235054837272493L;	
+	};
+
 	/**
 	 * This class stores a summary of the timestamps seen by a node. For each node, stores the timestamp of the last
 	 * received operation.
@@ -74,8 +82,8 @@ public class TimestampVector implements Serializable {
 	 * @param timestamp
 	 */
 	public void updateTimestamp(Timestamp timestamp) {
-		// Sync by hostId
-		synchronized (timestamp.getHostid()) {
+		// Sync by lock
+		{
 			lsim.log(Level.TRACE, "Updating the TimestampVectorInserting with the timestamp: " + timestamp);
 			timestampVector.put(timestamp.getHostid(), timestamp);
 		}
@@ -87,20 +95,22 @@ public class TimestampVector implements Serializable {
 	 * @param tsVector (a timestamp vector)
 	 */
 	public void updateMax(TimestampVector tsVector) {
-		if (tsVector == null) {
-			return;
-		}
-		lsim.log(Level.TRACE, "TimestampVector.updateMax");
-		Enumeration<String> keys = timestampVector.keys();
-		while (keys.hasMoreElements()) {
-			String key = keys.nextElement();
-			Timestamp currentMine = timestampVector.get(key);
-			Timestamp currentOther = tsVector.getLast(key);
-			if (currentOther == null) {
-				continue;
+		synchronized (lock) {
+			if (tsVector == null) {
+				return;
 			}
-			if (currentMine == null || currentMine.isNullTimestamp() || currentMine.compare(currentOther) < 0) {
-				this.updateTimestamp(currentOther);
+			lsim.log(Level.TRACE, "TimestampVector.updateMax");
+			Enumeration<String> keys = timestampVector.keys();
+			while (keys.hasMoreElements()) {
+				String key = keys.nextElement();
+				Timestamp currentMine = timestampVector.get(key);
+				Timestamp currentOther = tsVector.getLast(key);
+				if (currentOther == null) {
+					continue;
+				}
+				if (currentMine == null || currentMine.isNullTimestamp() || currentMine.compare(currentOther) < 0) {
+					this.updateTimestamp(currentOther);
+				}
 			}
 		}
 	}
@@ -121,20 +131,22 @@ public class TimestampVector implements Serializable {
 	 * @param tsVector (timestamp vector)
 	 */
 	public void mergeMin(TimestampVector tsVector) {
-		if (tsVector == null) {
-			return;
-		}
-		Enumeration<String> keys = timestampVector.keys();
-		while (keys.hasMoreElements()) {
-			String key = keys.nextElement();
-			Timestamp currentMine = timestampVector.get(key);
-			Timestamp currentOther = tsVector.getLast(key);
-			if (currentOther == null) {
-				continue;
+		synchronized (lock) {
+			if (tsVector == null) {
+				return;
 			}
-			// If currenOther is null, then the min timestamp is null
-			if (currentMine.compare(currentOther) > 0) {
-				this.updateTimestamp(currentOther);
+			Enumeration<String> keys = timestampVector.keys();
+			while (keys.hasMoreElements()) {
+				String key = keys.nextElement();
+				Timestamp currentMine = timestampVector.get(key);
+				Timestamp currentOther = tsVector.getLast(key);
+				if (currentOther == null) {
+					continue;
+				}
+				// If currenOther is null, then the min timestamp is null
+				if (currentMine.compare(currentOther) > 0) {
+					this.updateTimestamp(currentOther);
+				}
 			}
 		}
 	}
@@ -143,7 +155,9 @@ public class TimestampVector implements Serializable {
 	 * clone
 	 */
 	public TimestampVector clone() {
-		return new TimestampVector(timestampVector);
+		synchronized (lock) {
+			return new TimestampVector(timestampVector);
+		}
 	}
 
 	/**
