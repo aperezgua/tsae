@@ -42,6 +42,7 @@ import recipes_service.communication.MessageEndTSAE;
 import recipes_service.communication.MessageOperation;
 import recipes_service.communication.MsgType;
 import recipes_service.data.Operation;
+import recipes_service.tsae.data_structures.Log;
 import recipes_service.tsae.data_structures.TimestampMatrix;
 import recipes_service.tsae.data_structures.TimestampVector;
 
@@ -108,6 +109,7 @@ public class TSAESessionOriginatorSide extends TimerTask {
 
 			TimestampVector localSummary = null;
 			TimestampMatrix localAck = null;
+			Log localLog = null;
 
 			List<Operation> operationsReceived = new ArrayList<Operation>();
 
@@ -117,6 +119,7 @@ public class TSAESessionOriginatorSide extends TimerTask {
 			synchronized (serverData.getCommunicationLock()) {
 				localSummary = serverData.getSummary().clone();
 				localAck = serverData.getAck().clone();
+				localLog = serverData.getLog().clone();
 			}
 			// localAck.update(serverData.getId(), localSummary);
 
@@ -145,11 +148,9 @@ public class TSAESessionOriginatorSide extends TimerTask {
 			if (msg.type() == MsgType.AE_REQUEST) {
 				TimestampVector partnerSummary = ((MessageAErequest) msg).getSummary();
 				TimestampMatrix partnerAck = ((MessageAErequest) msg).getAck();
+				
 
-				lsim.log(Level.TRACE, "[TSAESessionOriginatorSide] [" + currentThread + "] [session: "
-						+ current_session_number + "] partnerSummary: " + partnerSummary);
-
-				List<Operation> operationsToSend = serverData.getLog().listNewer(partnerSummary);
+				List<Operation> operationsToSend = localLog.listNewer(partnerSummary);
 
 				for (Operation operation : operationsToSend) {
 					msg = new MessageOperation(operation);
@@ -176,6 +177,12 @@ public class TSAESessionOriginatorSide extends TimerTask {
 
 				if (msg.type() == MsgType.END_TSAE) {
 					// ...
+					/*
+					 * Para evitar que hagamos update de algo que no emos recibido por errores en la sincronización y la
+					 * concurrencia. Esto ocurre si en una sesión TSAE el Originator / Parner, el parner nos envía un
+					 * summary de algo que no hemos recibido
+					 * 
+					 */
 					serverData.processOperationQueue(current_session_number, partnerSummary, partnerAck,
 							operationsReceived);
 					// ...

@@ -193,7 +193,7 @@ public class ServerData {
 
 		String currentThread = Thread.currentThread().toString();
 		List<Timestamp> recipesToRemove = new ArrayList<Timestamp>();
-
+		
 		for (Operation operation : operations) {
 			if (getLog().add(operation)) {
 				switch (operation.getType()) {
@@ -226,6 +226,8 @@ public class ServerData {
 					// }
 					break;
 				}
+				// Only update timestamp if needed
+				this.summary.updateTimestamp(operation.getTimestamp());
 			} else {
 				lsim.log(Level.TRACE, "[ServerData.processOperationQueue] [" + currentThread + "] [session: " + nSession
 						+ "]  cannot add: " + operation);
@@ -236,8 +238,7 @@ public class ServerData {
 			lsim.log(Level.TRACE, "[ServerData.processOperationQueue] [" + currentThread + "] [session: " + nSession
 					+ "] We have not received all operations " + recipesToRemove);
 		}
-
-		getSummary().updateMax(summary);
+		//getSummary().updateMax(summary);
 		getAck().updateMax(ack);
 		getLog().purgeLog(getAck());
 	}

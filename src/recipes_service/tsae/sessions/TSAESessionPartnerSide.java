@@ -83,9 +83,6 @@ public class TSAESessionPartnerSide extends Thread {
 				TimestampVector originatorSummary = ((MessageAErequest) msg).getSummary();
 				TimestampMatrix originatorAck = ((MessageAErequest) msg).getAck();
 
-				lsim.log(Level.TRACE, "[TSAESessionPartnerSide] [" + currentThread + "] [session: "
-						+ current_session_number + "] received summary: " + originatorSummary);
-
 				// send to originator: local's summary and ack
 				TimestampVector localSummary = null;
 				TimestampMatrix localAck = null;

@@ -48,26 +48,6 @@ public class Log implements Serializable {
 	private static final long serialVersionUID = -4864990265268259700L;
 
 	/**
-	 * Comparator to sort our Operation List with Timestamp
-	 */
-	private static final Comparator<Operation> ORDERBY_TIMESTAMP = new Comparator<Operation>() {
-
-		@Override
-		public int compare(final Operation op1, final Operation op2) {
-			Timestamp t1 = op1.getTimestamp();
-			Timestamp t2 = op2.getTimestamp();
-
-			if (t1.compare(t2) > 0) {
-				return -1;
-			} else if (t1.compare(t2) < 0) {
-				return 1;
-			}
-			return 0;
-		}
-
-	};
-
-	/**
 	 * This class implements a log, that stores the operations received by a client. They are stored in a
 	 * ConcurrentHashMap (a hash table), that stores a list of operations for each member of the group.
 	 */
@@ -77,6 +57,18 @@ public class Log implements Serializable {
 		// create an empty log
 		for (Iterator<String> it = participants.iterator(); it.hasNext();) {
 			log.put(it.next(), new Vector<Operation>());
+		}
+	}
+
+	/**
+	 * Constructor privado para clonar
+	 * 
+	 * @param log
+	 */
+	private Log(ConcurrentHashMap<String, List<Operation>> log) {
+		this.log = new ConcurrentHashMap<String, List<Operation>>();
+		for (String key : log.keySet()) {
+			this.log.put(key, new ArrayList<Operation>(log.get(key)));
 		}
 	}
 
@@ -181,6 +173,10 @@ public class Log implements Serializable {
 		}
 		Log other = (Log) obj;
 		return this.log.equals(other.log);
+	}
+
+	public Log clone() {
+		return new Log(log);
 	}
 
 	/**
