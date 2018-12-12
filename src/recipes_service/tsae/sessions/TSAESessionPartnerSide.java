@@ -139,8 +139,10 @@ public class TSAESessionPartnerSide extends Thread {
 							+ current_session_number + "] sent message: " + msg);
 
 					// ...
-					serverData.processOperationQueue(current_session_number, originatorSummary, originatorAck,
-							operationsReceived);
+					synchronized (serverData.getCommunicationLock()) {
+						serverData.processOperationQueue(current_session_number, originatorSummary, originatorAck,
+								operationsReceived);
+					}
 					// ...
 
 				}

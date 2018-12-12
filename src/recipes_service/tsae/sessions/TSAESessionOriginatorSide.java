@@ -148,7 +148,6 @@ public class TSAESessionOriginatorSide extends TimerTask {
 			if (msg.type() == MsgType.AE_REQUEST) {
 				TimestampVector partnerSummary = ((MessageAErequest) msg).getSummary();
 				TimestampMatrix partnerAck = ((MessageAErequest) msg).getAck();
-				
 
 				List<Operation> operationsToSend = localLog.listNewer(partnerSummary);
 
@@ -177,9 +176,10 @@ public class TSAESessionOriginatorSide extends TimerTask {
 
 				if (msg.type() == MsgType.END_TSAE) {
 					// ...
-					
-					serverData.processOperationQueue(current_session_number, partnerSummary, partnerAck,
-							operationsReceived);
+					synchronized (serverData.getCommunicationLock()) {
+						serverData.processOperationQueue(current_session_number, partnerSummary, partnerAck,
+								operationsReceived);
+					}
 					// ...
 				}
 			}
